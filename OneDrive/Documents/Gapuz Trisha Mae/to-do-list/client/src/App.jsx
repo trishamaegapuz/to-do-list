@@ -11,7 +11,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
 
-  const API = 'http://localhost:3000';
+  const API = 'http://to-do-list-rho-sable-68.vercel.app';
 
   const navigate = useNavigate();
 

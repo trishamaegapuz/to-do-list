@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
-const API_URL = 'https://to-do-list-8a22.onrender.com';
+const API_URL = 'https://to-do-list-rho-sable-68.vercel.app';
 
 function Details() {
   const { id } = useParams();
