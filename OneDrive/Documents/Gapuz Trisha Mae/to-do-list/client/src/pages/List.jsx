@@ -3,13 +3,16 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
+// DITO MO PALITAN ANG URL:
+const API_URL = 'https://to-do-list-8a22.onrender.com';
+
 function List() {
   const [lists, setLists] = useState([]);
   const navigate = useNavigate();
 
   const fetchLists = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/list');
+      const res = await axios.get(`${API_URL}/api/list`);
       setLists(res.data);
     } catch (err) { console.error(err); }
   };
@@ -25,7 +28,7 @@ function List() {
       confirmButtonColor: '#6366f1',
     });
     if (value) {
-      await axios.post('http://localhost:3000/api/list', { title: value });
+      await axios.post(`${API_URL}/api/list`, { title: value });
       fetchLists();
     }
   };
@@ -40,7 +43,7 @@ function List() {
       confirmButtonColor: '#6366f1',
     });
     if (value) {
-      await axios.put(`http://localhost:3000/api/list/${id}`, { title: value });
+      await axios.put(`${API_URL}/api/list/${id}`, { title: value });
       fetchLists();
     }
   };
@@ -55,7 +58,7 @@ function List() {
       confirmButtonColor: '#ef4444',
     });
     if (result.isConfirmed) {
-      await axios.delete(`http://localhost:3000/api/list/${id}`);
+      await axios.delete(`${API_URL}/api/list/${id}`);
       fetchLists();
     }
   };
@@ -76,7 +79,6 @@ function List() {
             className="group relative bg-white p-6 rounded-[2rem] shadow-xl shadow-indigo-100/50 border border-white flex justify-between items-center cursor-pointer hover:scale-[1.02] transition-all duration-300"
           >
             <div className="flex items-center gap-5">
-              {/* Gradient Icon Circle */}
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg 
                 ${index % 3 === 0 ? 'bg-gradient-to-tr from-blue-500 to-indigo-500' : 
                   index % 3 === 1 ? 'bg-gradient-to-tr from-violet-500 to-purple-500' : 
