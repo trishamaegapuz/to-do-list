@@ -11,8 +11,10 @@ app.set('trust proxy', 1);
 app.use(express.json());
 
 app.use(cors({
-  origin: process.env.CLIENT_URL, // Vercel URL
-  credentials: true
+  origin: process.env.CLIENT_URL || 'https://to-do-list-rho-sable-68.vercel.app', 
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(

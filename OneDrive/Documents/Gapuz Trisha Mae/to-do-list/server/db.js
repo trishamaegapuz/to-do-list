@@ -1,27 +1,15 @@
+// db.js - Gawin nating mas simple at matibay
 import pkg from 'pg';
 const { Pool } = pkg;
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-let pool;
+const isProduction = process.env.NODE_ENV === "production";
 
-if (process.env.NODE_ENV === "development") {
-  pool = new Pool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT) || 5432,
-  });
-} else {
-  // FIXED: Inilagay ang tamang format para sa cloud deployment
-  pool = new Pool({
-    connectionString: `postgres://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}/${process.env.DB_NAME}?sslmode=require`,
-    ssl: {
-      rejectUnauthorized: false,
-    },
-  });
-}
+const pool = new Pool({
+  connectionString: isProduction ? process.env.DATABASE_URL : `postgres://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}/${process.env.DB_NAME}`,
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
+});
 
 export { pool };
