@@ -10,7 +10,8 @@ const PORT = 3000;
 app.use(express.json());
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   credentials: true
 }));
 
@@ -27,7 +28,7 @@ app.use(
     }
   })
 );
-
+g
 app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -70,14 +71,14 @@ app.post('/register', async (req, res) => {
   }
 });
 
-app.get('/api/list', async (req, res) => {
+app.get('https://to-do-list-8a22.onrender.com/api/list', async (req, res) => {
   const result = await pool.query(
     'SELECT * FROM list ORDER BY id ASC'
   );
   res.json(result.rows);
 });
 
-app.post('/api/list', async (req, res) => {
+app.post('https://to-do-list-8a22.onrender.com/api/list', async (req, res) => {
   const { title } = req.body;
   await pool.query(
     'INSERT INTO list (title) VALUES ($1)',
@@ -86,7 +87,7 @@ app.post('/api/list', async (req, res) => {
   res.json({ success: true });
 });
 
-app.put('/api/list/:id', async (req, res) => {
+app.put('https://to-do-list-8a22.onrender.com/api/list/:id', async (req, res) => {
   const { id } = req.params;
   const { title } = req.body;
 
@@ -97,14 +98,14 @@ app.put('/api/list/:id', async (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/list/:id', async (req, res) => {
+app.delete('https://to-do-list-8a22.onrender.com/api/list/:id', async (req, res) => {
   const { id } = req.params;
   await pool.query('DELETE FROM items WHERE list_id = $1', [id]);
   await pool.query('DELETE FROM list WHERE id = $1', [id]);
   res.json({ success: true });
 });
 
-app.get('/api/items/:listId', async (req, res) => {
+app.get('https://to-do-list-8a22.onrender.com/api/items/:listId', async (req, res) => {
   const { listId } = req.params;
   const result = await pool.query(
     'SELECT * FROM items WHERE list_id = $1 ORDER BY id ASC',
@@ -113,7 +114,7 @@ app.get('/api/items/:listId', async (req, res) => {
   res.json(result.rows);
 });
 
-app.post('/api/items', async (req, res) => {
+app.post('https://to-do-list-8a22.onrender.com/api/items', async (req, res) => {
   const { list_id, description, status } = req.body;
   await pool.query(
     'INSERT INTO items (list_id, description, status) VALUES ($1,$2,$3)',
@@ -122,7 +123,7 @@ app.post('/api/items', async (req, res) => {
   res.json({ success: true });
 });
 
-app.put('/api/items/:id', async (req, res) => {
+app.put('https://to-do-list-8a22.onrender.com/api/items/:id', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -133,7 +134,7 @@ app.put('/api/items/:id', async (req, res) => {
   res.json({ success: true });
 });
 
-app.patch('/api/items/:id', async (req, res) => {
+app.patch('https://to-do-list-8a22.onrender.com/api/items/:id', async (req, res) => {
   const { id } = req.params;
   const { description } = req.body;
 
@@ -144,7 +145,7 @@ app.patch('/api/items/:id', async (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/items/:id', async (req, res) => {
+app.delete('https://to-do-list-8a22.onrender.com/api/items/:id', async (req, res) => {
   const { id } = req.params;
   await pool.query(
     'DELETE FROM items WHERE id = $1',
