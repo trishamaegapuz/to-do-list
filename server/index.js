@@ -10,13 +10,11 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1); 
 app.use(express.json());
 
-// --- CORS CONFIG ---
 app.use(cors({
   origin: 'https://to-do-list-rho-sable-68.vercel.app',
   credentials: true
 }));
 
-// --- SESSION CONFIG ---
 app.use(
   session({
     name: 'todo_sid',
@@ -32,7 +30,6 @@ app.use(
 );
 
 // --- AUTH ROUTES ---
-
 app.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -41,7 +38,7 @@ app.post('/register', async (req, res) => {
     res.json({ success: true, message: "Account created!" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Username already exists or database error." });
+    res.status(500).json({ success: false, message: "Username already exists." });
   }
 });
 
@@ -64,9 +61,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// --- LIST API ROUTES ---
-
-// Get all lists
+// --- LIST & ITEMS API ---
 app.get('/api/list', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
@@ -74,7 +69,6 @@ app.get('/api/list', async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-// Create new list
 app.post('/api/list', async (req, res) => {
   try {
     const { title } = req.body;
@@ -83,17 +77,6 @@ app.post('/api/list', async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-// Rename list
-app.put('/api/list/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title } = req.body;
-    await pool.query('UPDATE list SET title = $1 WHERE id = $2', [title, id]);
-    res.json({ success: true });
-  } catch (err) { res.status(500).json(err); }
-});
-
-// Delete list
 app.delete('/api/list/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -102,9 +85,6 @@ app.delete('/api/list/:id', async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-// --- ITEMS API ROUTES ---
-
-// Get items for a specific list
 app.get('/api/items/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -113,40 +93,10 @@ app.get('/api/items/:id', async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-// Add new item
 app.post('/api/items', async (req, res) => {
   try {
     const { list_id, description, status } = req.body;
     await pool.query('INSERT INTO items (list_id, description, status) VALUES ($1, $2, $3)', [list_id, description, status]);
-    res.json({ success: true });
-  } catch (err) { res.status(500).json(err); }
-});
-
-// Toggle item status (Done/Pending)
-app.put('/api/items/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    await pool.query('UPDATE items SET status = $1 WHERE id = $2', [status, id]);
-    res.json({ success: true });
-  } catch (err) { res.status(500).json(err); }
-});
-
-// Edit item description
-app.patch('/api/items/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { description } = req.body;
-    await pool.query('UPDATE items SET description = $1 WHERE id = $2', [description, id]);
-    res.json({ success: true });
-  } catch (err) { res.status(500).json(err); }
-});
-
-// Delete item
-app.delete('/api/items/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    await pool.query('DELETE FROM items WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json(err); }
 });
