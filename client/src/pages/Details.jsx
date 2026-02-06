@@ -17,25 +17,20 @@ function Details() {
     try {
       const res = await axios.get(`${API}/api/items/${id}`);
       setItems(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); } 
+    finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchItems();
-  }, [id]);
+  useEffect(() => { fetchItems(); }, [id]);
 
-  // --- 1. CREATE (ADD ITEM) ---
   const handleAdd = async () => {
     const { value: desc } = await Swal.fire({
-      title: 'New Task',
+      title: 'Add New Task',
       input: 'text',
       inputPlaceholder: 'Enter task description...',
       showCancelButton: true,
-      confirmButtonColor: '#4f46e5',
+      confirmButtonColor: '#6366f1',
+      customClass: { popup: 'rounded-[2rem]' }
     });
 
     if (desc) {
@@ -48,21 +43,20 @@ function Details() {
     }
   };
 
-  // --- 2. UPDATE (TOGGLE CHECKBOX) ---
   const toggleStatus = async (itemId, currentStatus) => {
     const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
     await axios.put(`${API}/api/items/${itemId}`, { status: newStatus });
     fetchItems();
   };
 
-  // --- 3. UPDATE (EDIT DESCRIPTION) ---
   const handleEdit = async (itemId, currentDesc) => {
     const { value: newDesc } = await Swal.fire({
-      title: 'Edit Task',
+      title: 'Update Task',
       input: 'text',
       inputValue: currentDesc,
       showCancelButton: true,
-      confirmButtonColor: '#4f46e5',
+      confirmButtonColor: '#6366f1',
+      customClass: { popup: 'rounded-[2rem]' }
     });
 
     if (newDesc && newDesc !== currentDesc) {
@@ -71,13 +65,13 @@ function Details() {
     }
   };
 
-  // --- 4. DELETE (REMOVE ITEM) ---
   const handleDelete = async (itemId) => {
     const result = await Swal.fire({
       title: 'Delete this task?',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
+      customClass: { popup: 'rounded-[2rem]' }
     });
 
     if (result.isConfirmed) {
@@ -87,61 +81,81 @@ function Details() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 pb-24">
+    <div className="min-h-screen bg-[#f8fafc] p-6 pb-24 font-sans">
       <div className="max-w-2xl mx-auto">
+        {/* TOP NAV */}
         <button
           onClick={() => navigate('/list')}
-          className="text-indigo-600 font-bold mb-8 flex items-center gap-2 hover:translate-x-[-4px] transition-transform"
+          className="group mb-12 flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-semibold transition-all"
         >
-          ← Back to Workspace
+          <span className="bg-white p-2 rounded-xl shadow-sm">←</span>
+          Workspace
         </button>
 
-        <header className="mb-10 flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-black text-slate-800">{state?.title || 'Tasks'}</h1>
-            <p className="text-slate-500 mt-2">Manage your to-do items</p>
+        {/* HEADER */}
+        <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-1">
+            <h1 className="text-5xl font-black text-slate-900 tracking-tight">
+              {state?.title || 'Daily Plan'}
+            </h1>
+            <p className="text-slate-400 font-medium">
+              You have {items.filter(i => i.status !== 'completed').length} tasks remaining
+            </p>
           </div>
           <button 
             onClick={handleAdd}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-indigo-700 shadow-lg transition-all"
+            className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-slate-900 shadow-lg shadow-indigo-100 transition-all active:scale-95"
           >
-            + Add Task
+            + New Task
           </button>
         </header>
 
-        <div className="space-y-3">
+        {/* TASK LIST */}
+        <div className="space-y-4">
           {loading ? (
-            <p className="text-center text-slate-400">Loading tasks...</p>
+            <div className="text-center py-20 text-slate-400">Syncing...</div>
           ) : items.length === 0 ? (
-            <p className="text-center py-20 text-slate-400 italic">No tasks yet.</p>
+            <div className="text-center py-24 bg-white rounded-[3rem] border border-slate-100">
+              <span className="text-4xl block mb-4">☕</span>
+              <p className="text-slate-400 italic">No tasks yet. Take a break or start planning!</p>
+            </div>
           ) : (
             items.map((item) => (
               <div 
                 key={item.id} 
-                className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group"
+                className={`bg-white p-6 rounded-[2rem] shadow-sm border flex items-center justify-between group transition-all duration-300 ${
+                  item.status === 'completed' ? 'border-transparent opacity-60' : 'border-slate-100 hover:border-indigo-200'
+                }`}
               >
-                <div className="flex items-center gap-4 flex-1">
-                  <input 
-                    type="checkbox" 
-                    checked={item.status === 'completed'}
-                    onChange={() => toggleStatus(item.id, item.status)}
-                    className="w-6 h-6 accent-indigo-600 cursor-pointer" 
-                  />
-                  <span className={`text-lg ${item.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                <div className="flex items-center gap-5 flex-1">
+                  <div className="relative flex items-center justify-center">
+                    <input 
+                      type="checkbox" 
+                      checked={item.status === 'completed'}
+                      onChange={() => toggleStatus(item.id, item.status)}
+                      className="peer appearance-none w-8 h-8 rounded-xl border-2 border-indigo-100 checked:bg-indigo-600 checked:border-indigo-600 transition-all cursor-pointer" 
+                    />
+                    <span className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity">
+                      ✓
+                    </span>
+                  </div>
+                  <span className={`text-xl font-bold transition-all duration-500 ${
+                    item.status === 'completed' ? 'line-through text-slate-400 decoration-2' : 'text-slate-700'
+                  }`}>
                     {item.description}
                   </span>
                 </div>
 
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-2">
                   <button 
                     onClick={() => handleEdit(item.id, item.description)}
-                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                    className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all"
                   >
                     ✏️
                   </button>
                   <button 
                     onClick={() => handleDelete(item.id)}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
                   >
                     🗑️
                   </button>
