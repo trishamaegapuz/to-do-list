@@ -11,11 +11,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
 
-<<<<<<< HEAD
   const API = 'https://to-do-list-8a22.onrender.com';
-=======
-  const API = 'http://localhost:3000';
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
 
   const navigate = useNavigate();
 
@@ -25,78 +21,39 @@ function App() {
 
     try {
       const url = isSignup ? `${API}/register` : `${API}/login`;
-<<<<<<< HEAD
       const payload = { username, password };
-=======
-
-      navigate('/list');
-      
-      const payload = isSignup 
-        ? { name: username, username: username, password: password, confirm: password } 
-        : { username: username, password: password };
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
 
       const res = await axios.post(url, payload);
 
       if (res.data.success) {
-<<<<<<< HEAD
         await Swal.fire({
           icon: 'success',
           title: isSignup ? 'Registration Success!' : 'Welcome Back!',
           text: isSignup ? 'You can now log in.' : 'Redirecting to your workspace...',
           timer: 2000,
           showConfirmButton: false,
-=======
-        Swal.fire({
-          icon: 'success',
-          title: isSignup ? 'Registration Success!' : 'Welcome Back!',
-          text: res.data.message || (isSignup ? 'You can now log in.' : 'Redirecting...'),
-          timer: 2500,
-          showConfirmButton: false,
-          background: '#fff',
-          iconColor: '#4f46e5', 
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
         });
 
         if (isSignup) {
           setIsSignup(false);
-<<<<<<< HEAD
           setUsername('');
           setPassword('');
         } else {
           navigate('/list');
-=======
-          setPassword('');    
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
         }
       } else {
         Swal.fire({
           icon: 'error',
-<<<<<<< HEAD
           title: 'Authentication Failed',
           text: 'Maling username o password.',
         });
       }
-=======
-          title: 'Oops...',
-          text: res.data.message || 'Something went wrong!',
-          confirmButtonColor: '#4f46e5',
-        });
-      }
-
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
     } catch (err) {
       console.error('ERROR:', err);
       Swal.fire({
         icon: 'error',
-<<<<<<< HEAD
         title: 'Connection Issue',
         text: 'Hindi makakonekta sa server. Pakihintay ng 1 minuto para magising ang Render.',
-=======
-        title: 'Server Error',
-        text: err.response?.data?.message || 'Cannot connect to the server. Is your backend running?',
-        confirmButtonColor: '#ef4444',
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
       });
     } finally {
       setLoading(false);
@@ -111,13 +68,9 @@ function App() {
           <h1 className="text-3xl font-bold text-gray-800">
             {isSignup ? 'Create Account' : 'Welcome Back'}
           </h1>
-<<<<<<< HEAD
           <p className="text-gray-500 text-sm mt-2">
             {isSignup ? 'Register to start your tasks' : 'Please log in to your account'}
           </p>
-=======
-          <p className="text-gray-500 text-sm mt-2">You Login Now!</p>
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -129,10 +82,7 @@ function App() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-<<<<<<< HEAD
               disabled={loading}
-=======
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
             />
           </div>
 
@@ -145,18 +95,12 @@ function App() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-<<<<<<< HEAD
               disabled={loading}
-=======
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
             />
           </div>
 
           <button
-<<<<<<< HEAD
             type="submit"
-=======
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
             disabled={loading}
             className={`w-full py-3 rounded-lg text-white font-bold text-lg shadow-lg transition-all transform active:scale-95 ${
               loading
@@ -164,11 +108,7 @@ function App() {
                 : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/50'
             }`}
           >
-<<<<<<< HEAD
             {loading ? 'Connecting to Server...' : isSignup ? 'Sign Up' : 'Log In'}
-=======
-            {loading ? 'Processing...' : isSignup ? 'Sign Up' : 'Log In'}
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
           </button>
         </form>
 
@@ -177,17 +117,11 @@ function App() {
           <span
             className="text-indigo-600 font-bold cursor-pointer ml-1 hover:underline"
             onClick={() => {
-<<<<<<< HEAD
               if (!loading) {
                 setIsSignup(!isSignup);
                 setUsername('');
                 setPassword('');
               }
-=======
-              setIsSignup(!isSignup);
-              setUsername('');
-              setPassword('');
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
             }}
           >
             {isSignup ? 'Login' : 'Sign up'}

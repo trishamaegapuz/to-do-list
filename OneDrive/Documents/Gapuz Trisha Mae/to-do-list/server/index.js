@@ -5,7 +5,6 @@ import { pool } from './db.js';
 import { hashPassword, comparePassword } from './components/hash.js';
 
 const app = express();
-<<<<<<< HEAD
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
@@ -16,21 +15,11 @@ app.use(cors({
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"]
-=======
-const PORT = 3000;
-
-app.use(express.json());
-
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
 }));
 
 app.use(
   session({
     name: 'connect.sid',
-<<<<<<< HEAD
     secret: process.env.SESSION_SECRET || 'secret-key',
     resave: false,
     saveUninitialized: false,
@@ -38,24 +27,12 @@ app.use(
       secure: true,
       sameSite: 'none',
       httpOnly: true
-=======
-    secret: 'secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false,
-      httpOnly: true,
-      sameSite: 'lax'
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
     }
   })
 );
 
-<<<<<<< HEAD
 /* ================= AUTH ================= */
 
-=======
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
 app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -78,10 +55,7 @@ app.post('/login', async (req, res) => {
     res.json({ success: true });
 
   } catch (err) {
-<<<<<<< HEAD
     console.error(err);
-=======
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
     res.status(500).json({ success: false });
   }
 });
@@ -98,59 +72,33 @@ app.post('/register', async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-<<<<<<< HEAD
     console.error(err);
-=======
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
     res.status(500).json({ success: false });
   }
 });
 
-<<<<<<< HEAD
 /* ================= LIST ================= */
 
 app.get('/api/list', async (req, res) => {
   const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
-=======
-app.get('/api/list', async (req, res) => {
-  const result = await pool.query(
-    'SELECT * FROM list ORDER BY id ASC'
-  );
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
   res.json(result.rows);
 });
 
 app.post('/api/list', async (req, res) => {
   const { title } = req.body;
-<<<<<<< HEAD
   await pool.query('INSERT INTO list (title) VALUES ($1)', [title]);
-=======
-  await pool.query(
-    'INSERT INTO list (title) VALUES ($1)',
-    [title]
-  );
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
   res.json({ success: true });
 });
 
 app.put('/api/list/:id', async (req, res) => {
   const { id } = req.params;
   const { title } = req.body;
-<<<<<<< HEAD
   await pool.query('UPDATE list SET title=$1 WHERE id=$2', [title, id]);
-=======
-
-  await pool.query(
-    'UPDATE list SET title = $1 WHERE id = $2',
-    [title, id]
-  );
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
   res.json({ success: true });
 });
 
 app.delete('/api/list/:id', async (req, res) => {
   const { id } = req.params;
-<<<<<<< HEAD
   await pool.query('DELETE FROM items WHERE list_id=$1', [id]);
   await pool.query('DELETE FROM list WHERE id=$1', [id]);
   res.json({ success: true });
@@ -162,17 +110,6 @@ app.get('/api/items/:listId', async (req, res) => {
   const { listId } = req.params;
   const result = await pool.query(
     'SELECT * FROM items WHERE list_id=$1 ORDER BY id ASC',
-=======
-  await pool.query('DELETE FROM items WHERE list_id = $1', [id]);
-  await pool.query('DELETE FROM list WHERE id = $1', [id]);
-  res.json({ success: true });
-});
-
-app.get('/api/items/:listId', async (req, res) => {
-  const { listId } = req.params;
-  const result = await pool.query(
-    'SELECT * FROM items WHERE list_id = $1 ORDER BY id ASC',
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
     [listId]
   );
   res.json(result.rows);
@@ -190,14 +127,8 @@ app.post('/api/items', async (req, res) => {
 app.put('/api/items/:id', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-<<<<<<< HEAD
   await pool.query(
     'UPDATE items SET status=$1 WHERE id=$2',
-=======
-
-  await pool.query(
-    'UPDATE items SET status = $1 WHERE id = $2',
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
     [status, id]
   );
   res.json({ success: true });
@@ -206,14 +137,8 @@ app.put('/api/items/:id', async (req, res) => {
 app.patch('/api/items/:id', async (req, res) => {
   const { id } = req.params;
   const { description } = req.body;
-<<<<<<< HEAD
   await pool.query(
     'UPDATE items SET description=$1 WHERE id=$2',
-=======
-
-  await pool.query(
-    'UPDATE items SET description = $1 WHERE id = $2',
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
     [description, id]
   );
   res.json({ success: true });
@@ -221,21 +146,10 @@ app.patch('/api/items/:id', async (req, res) => {
 
 app.delete('/api/items/:id', async (req, res) => {
   const { id } = req.params;
-<<<<<<< HEAD
   await pool.query('DELETE FROM items WHERE id=$1', [id]);
-=======
-  await pool.query(
-    'DELETE FROM items WHERE id = $1',
-    [id]
-  );
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
   res.json({ success: true });
 });
 
 app.listen(PORT, () => {
-<<<<<<< HEAD
   console.log(`SERVER RUNNING ON PORT ${PORT}`);
-=======
-  console.log(`SERVER RUNNING http://localhost:${PORT}`);
->>>>>>> d8111a500d3bd1ceaad0fd21c8004c1ecf3e5709
 });
