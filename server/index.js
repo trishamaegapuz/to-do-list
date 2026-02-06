@@ -29,39 +29,30 @@ app.use(
   })
 );
 
-// --- AUTH ROUTES ---
+// --- AUTH ---
 app.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
     const hashedPassword = await hashPassword(password);
     await pool.query('INSERT INTO user_accounts (username, password) VALUES ($1, $2)', [username, hashedPassword]);
-    res.json({ success: true, message: "Account created!" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Username already exists." });
-  }
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false }); }
 });
 
 app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const result = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
-    
-    if (result.rows.length === 0) return res.status(401).json({ success: false, message: "User not found" });
-    
+    if (result.rows.length === 0) return res.status(401).json({ success: false });
     const user = result.rows[0];
     const match = await comparePassword(password, user.password);
-    
-    if (!match) return res.status(401).json({ success: false, message: "Wrong password" });
-    
+    if (!match) return res.status(401).json({ success: false });
     req.session.user = { id: user.id, username: user.username };
     res.json({ success: true });
-  } catch (err) { 
-    res.status(500).json({ success: false }); 
-  }
+  } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// --- LIST & ITEMS API ---
+// --- LIST API ---
 app.get('/api/list', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
@@ -72,19 +63,31 @@ app.get('/api/list', async (req, res) => {
 app.post('/api/list', async (req, res) => {
   try {
     const { title } = req.body;
-    const result = await pool.query('INSERT INTO list (title) VALUES ($1) RETURNING *', [title]);
+    const result = await pool.query('INSERT INTO list (title, status) VALUES ($1, $2) RETURNING *', [title, 'pending']);
     res.json(result.rows[0]);
+  } catch (err) { res.status(500).json(err); }
+});
+
+app.put('/api/list/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title } = req.body;
+    await pool.query('UPDATE list SET title = $1 WHERE id = $2', [title, id]);
+    res.json({ success: true });
   } catch (err) { res.status(500).json(err); }
 });
 
 app.delete('/api/list/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    // Manual Cascade: Burahin muna ang items bago ang list
+    await pool.query('DELETE FROM items WHERE list_id = $1', [id]);
     await pool.query('DELETE FROM list WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json(err); }
 });
 
+// --- ITEMS API ---
 app.get('/api/items/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -101,6 +104,22 @@ app.post('/api/items', async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-app.listen(PORT, () => {
-  console.log(`SERVER RUNNING ON PORT ${PORT}`);
+app.put('/api/items/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, description } = req.body;
+    if (status) await pool.query('UPDATE items SET status = $1 WHERE id = $2', [status, id]);
+    if (description) await pool.query('UPDATE items SET description = $1 WHERE id = $2', [description, id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json(err); }
 });
+
+app.delete('/api/items/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM items WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json(err); }
+});
+
+app.listen(PORT, () => console.log(`SERVER RUNNING ON PORT ${PORT}`));
