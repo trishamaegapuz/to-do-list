@@ -11,7 +11,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
 
-  // Gamitin ang Render URL para sa deployment
+  // Hardcoded para iwas error sa VITE_API_URL
   const API = 'https://to-do-list-8a22.onrender.com';
 
   const navigate = useNavigate();
@@ -22,8 +22,6 @@ function App() {
 
     try {
       const url = isSignup ? `${API}/register` : `${API}/login`;
-      
-      // Payload na tugma sa iyong backend query (username at password)
       const payload = { username, password };
 
       const res = await axios.post(url, payload);
@@ -35,8 +33,6 @@ function App() {
           text: isSignup ? 'You can now log in.' : 'Redirecting to your workspace...',
           timer: 2000,
           showConfirmButton: false,
-          background: '#fff',
-          iconColor: '#4f46e5',
         });
 
         if (isSignup) {
@@ -44,25 +40,21 @@ function App() {
           setUsername('');
           setPassword('');
         } else {
-          // Dito lang dapat lilipat ng page kapag SUCCESS ang login
           navigate('/list');
         }
       } else {
         Swal.fire({
           icon: 'error',
           title: 'Authentication Failed',
-          text: res.data.message || 'Maling username o password.',
-          confirmButtonColor: '#4f46e5',
+          text: 'Maling username o password.',
         });
       }
-
     } catch (err) {
       console.error('ERROR:', err);
       Swal.fire({
         icon: 'error',
         title: 'Connection Issue',
-        text: err.response?.data?.message || 'Hindi makakonekta sa server. Pakihintay ng 1 minuto para magising ang Render backend.',
-        confirmButtonColor: '#ef4444',
+        text: 'Hindi makakonekta sa server. Pakihintay ng 1 minuto para magising ang Render.',
       });
     } finally {
       setLoading(false);

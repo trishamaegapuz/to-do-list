@@ -1,24 +1,20 @@
 import { useState } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { useNavigate } from 'react-router-dom';
-
-// Gamitin ang Render URL para sa deployment
-const API = 'https://to-do-list-8a22.onrender.com';
-axios.defaults.withCredentials = true;
+import { useNavigate } from 'react-router-dom'; // Para makabalik sa login page
 
 function Register() {
-  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
+  const API_URL = 'http://localhost:3000';
 
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    // Validasyon ng password
     if (password !== confirm) {
       return Swal.fire({
         icon: 'error',
@@ -30,28 +26,27 @@ function Register() {
 
     setLoading(true);
     try {
-      // Nagpapadala ng request sa Render backend
-      const response = await axios.post(`${API}/register`, {
-        username: username,
-        password: password
+      const response = await axios.post(`${API_URL}/register`, {
+        name: name,
+        password: password,
+        confirm: confirm
       });
 
       if (response.data.success) {
         await Swal.fire({
           icon: 'success',
           title: 'Account Created!',
-          text: 'You have registered successfully. You can now log in.',
+          text: 'You have registered successfully.',
           timer: 2000,
           showConfirmButton: false
         });
-        navigate('/'); // I-redirect sa login page
+        navigate('/'); // I-redirect ang user sa Login page (App.jsx)
       }
     } catch (error) {
-      console.error('Registration Error:', error);
       Swal.fire({
         icon: 'error',
         title: 'Registration Failed',
-        text: error.response?.data?.message || "Ang server ay kasalukuyang nagigising. Subukan muli pagkatapos ng 1 minuto.",
+        text: error.response?.data?.message || "Something went wrong",
         confirmButtonColor: '#ef4444',
       });
     } finally {
@@ -64,7 +59,7 @@ function Register() {
       <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Sign Up</h1>
-          <p className="text-gray-500 text-sm mt-2">Create your account to start</p>
+          <p className="text-gray-500 text-sm mt-2">Faculty Consultation System</p>
         </div>
 
         <form onSubmit={handleRegister} className="space-y-4">
@@ -73,10 +68,9 @@ function Register() {
             <input
               type="text"
               required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Choose a username"
-              disabled={loading}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
             />
           </div>
@@ -89,7 +83,6 @@ function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
-              disabled={loading}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
             />
           </div>
@@ -102,7 +95,6 @@ function Register() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="Re-type password"
-              disabled={loading}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
             />
           </div>
@@ -110,8 +102,8 @@ function Register() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 rounded-lg text-white font-bold text-lg shadow-lg transition-all transform active:scale-95 ${
-              loading ? 'bg-pink-300 cursor-not-allowed' : 'bg-pink-600 hover:bg-pink-700 shadow-pink-500/50'
+            className={`w-full py-3 rounded-lg text-white font-bold text-lg shadow-lg transition-all ${
+              loading ? 'bg-pink-300' : 'bg-pink-600 hover:bg-pink-700 shadow-pink-500/50'
             }`}
           >
             {loading ? 'Creating Account...' : 'Register'}
