@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
-const API = import.meta.env.VITE_API_URL;
+const API = 'https://to-do-list-8a22.onrender.com';
 axios.defaults.withCredentials = true;
 
 function Details() {
@@ -13,8 +13,12 @@ function Details() {
   const [items, setItems] = useState([]);
 
   const fetchItems = async () => {
-    const res = await axios.get(`${API}/api/items/${id}`);
-    setItems(res.data);
+    try {
+      const res = await axios.get(`${API}/api/items/${id}`);
+      setItems(res.data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {

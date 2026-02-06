@@ -3,7 +3,6 @@ import axios from 'axios';
 import Swal from 'sweetalert2'; 
 import { useNavigate } from 'react-router-dom';
 
-// Mahalaga ito para gumana ang sessions/cookies sa pagitan ng Vercel at Render
 axios.defaults.withCredentials = true;
 
 function App() {
@@ -12,8 +11,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
 
-  // Gamitin ang environment variable kung meron, kung wala, fallback sa Render URL mo
-  const API = import.meta.env.VITE_API_URL || 'https://to-do-list-8a22.onrender.com';
+  // Hardcoded para iwas error sa VITE_API_URL
+  const API = 'https://to-do-list-8a22.onrender.com';
 
   const navigate = useNavigate();
 
@@ -23,12 +22,8 @@ function App() {
 
     try {
       const url = isSignup ? `${API}/register` : `${API}/login`;
-      
-      const payload = isSignup 
-        ? { username: username, password: password } 
-        : { username: username, password: password };
+      const payload = { username, password };
 
-      // Hintayin muna ang response mula sa Render bago mag-navigate
       const res = await axios.post(url, payload);
 
       if (res.data.success) {
@@ -38,8 +33,6 @@ function App() {
           text: isSignup ? 'You can now log in.' : 'Redirecting to your workspace...',
           timer: 2000,
           showConfirmButton: false,
-          background: '#fff',
-          iconColor: '#4f46e5', 
         });
 
         if (isSignup) {
@@ -47,35 +40,21 @@ function App() {
           setUsername('');
           setPassword('');
         } else {
-          // DITO LANG DAPAT LILIPAT NG PAGE
           navigate('/list');
         }
       } else {
         Swal.fire({
           icon: 'error',
           title: 'Authentication Failed',
-          text: 'Maling username o password. Pakisuri uli.',
-          confirmButtonColor: '#4f46e5',
+          text: 'Maling username o password.',
         });
       }
-
     } catch (err) {
-      console.error('ERROR DETAILS:', err);
-      
-      // Error handling para sa "Network Error" o natutulog na Render server
-      let errorMessage = 'Cannot connect to the server.';
-      
-      if (err.message === "Network Error") {
-        errorMessage = 'Ang backend server (Render) ay kasalukuyang natutulog o nag-gigising pa lang. Pakihintay ng 1-2 minuto at subukan muli.';
-      } else if (err.response) {
-        errorMessage = err.response.data.message || 'Maling impormasyon ang naibigay.';
-      }
-
+      console.error('ERROR:', err);
       Swal.fire({
         icon: 'error',
         title: 'Connection Issue',
-        text: errorMessage,
-        confirmButtonColor: '#ef4444',
+        text: 'Hindi makakonekta sa server. Pakihintay ng 1 minuto para magising ang Render.',
       });
     } finally {
       setLoading(false);

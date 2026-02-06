@@ -3,7 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
-const API = import.meta.env.VITE_API_URL;
+// Palitan ang import.meta.env ng direct link
+const API = 'https://to-do-list-8a22.onrender.com';
 axios.defaults.withCredentials = true;
 
 function List() {
@@ -12,11 +13,13 @@ function List() {
 
   const fetchLists = async () => {
     try {
+      // Sinunod ang /api/list route ng backend mo
       const res = await axios.get(`${API}/api/list`);
       setLists(res.data);
     } catch (err) {
       console.error(err);
-      Swal.fire('Error', 'Failed to load lists', 'error');
+      // ITO ANG LUMALABAS SA SCREEN MO KANINA
+      Swal.fire('Server Error', 'Failed to load lists. Backend might be sleeping.', 'error');
     }
   };
 
@@ -28,7 +31,6 @@ function List() {
     const { value } = await Swal.fire({
       title: 'Create New List',
       input: 'text',
-      inputPlaceholder: 'e.g. Shopping, Work...',
       showCancelButton: true,
       confirmButtonColor: '#6366f1',
     });
@@ -41,15 +43,12 @@ function List() {
 
   const editList = async (id, oldTitle, e) => {
     e.stopPropagation();
-
     const { value } = await Swal.fire({
       title: 'Rename List',
       input: 'text',
       inputValue: oldTitle,
       showCancelButton: true,
-      confirmButtonColor: '#6366f1',
     });
-
     if (value) {
       await axios.put(`${API}/api/list/${id}`, { title: value });
       fetchLists();
@@ -58,15 +57,11 @@ function List() {
 
   const deleteList = async (id, e) => {
     e.stopPropagation();
-
     const result = await Swal.fire({
       title: 'Delete this list?',
-      text: 'All items inside will be removed.',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#ef4444',
     });
-
     if (result.isConfirmed) {
       await axios.delete(`${API}/api/list/${id}`);
       fetchLists();
