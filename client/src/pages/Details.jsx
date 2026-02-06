@@ -1,10 +1,8 @@
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import Swal from 'sweetalert2';
 
 const API = 'https://to-do-list-8a22.onrender.com';
-axios.defaults.withCredentials = true;
 
 function Details() {
   const { id } = useParams();
@@ -12,95 +10,50 @@ function Details() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
 
-  const fetchItems = async () => {
-    try {
-      const res = await axios.get(`${API}/api/items/${id}`);
-      setItems(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const res = await axios.get(`${API}/api/items/${id}`);
+        setItems(res.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
     fetchItems();
   }, [id]);
 
-  const addItem = async () => {
-    const { value } = await Swal.fire({
-      title: 'Add New Item',
-      input: 'text',
-      showCancelButton: true,
-    });
-
-    if (value) {
-      await axios.post(`${API}/api/items`, {
-        list_id: id,
-        description: value,
-        status: 'pending'
-      });
-      fetchItems();
-    }
-  };
-
-  const toggleStatus = async (item) => {
-    await axios.put(`${API}/api/items/${item.id}`, {
-      status: item.status === 'done' ? 'pending' : 'done'
-    });
-    fetchItems();
-  };
-
-  const editItem = async (item, e) => {
-    e.stopPropagation();
-    const { value } = await Swal.fire({
-      title: 'Edit Item',
-      input: 'text',
-      inputValue: item.description,
-      showCancelButton: true,
-    });
-
-    if (value) {
-      await axios.patch(`${API}/api/items/${item.id}`, {
-        description: value
-      });
-      fetchItems();
-    }
-  };
-
-  const deleteItem = async (itemId, e) => {
-    e.stopPropagation();
-    const result = await Swal.fire({
-      title: 'Delete item?',
-      showCancelButton: true,
-      icon: 'warning'
-    });
-
-    if (result.isConfirmed) {
-      await axios.delete(`${API}/api/items/${itemId}`);
-      fetchItems();
-    }
-  };
-
   return (
-    <div className="min-h-screen p-6">
-      <button onClick={() => navigate('/list')} className="mb-4 text-indigo-600">
-        ← Back
-      </button>
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-2xl mx-auto">
+        {/* BACK TO LISTS BUTTON */}
+        <button
+          onClick={() => navigate('/list')}
+          className="text-indigo-600 font-bold mb-8 flex items-center gap-2 hover:translate-x-[-4px] transition-transform"
+        >
+          ← Back to Workspace
+        </button>
 
-      <h1 className="text-3xl font-bold mb-6">{state?.title}</h1>
+        <header className="mb-10">
+          <h1 className="text-4xl font-black text-slate-800">{state?.title || 'List Items'}</h1>
+          <p className="text-slate-500 mt-2">Manage your tasks below</p>
+        </header>
 
-      {items.map(item => (
-        <div key={item.id} className="bg-white p-4 mb-3 rounded shadow">
-          <span onClick={() => toggleStatus(item)}>{item.description}</span>
-          <div className="float-right space-x-2">
-            <button onClick={(e) => editItem(item, e)}>Edit</button>
-            <button onClick={(e) => deleteItem(item.id, e)}>Delete</button>
-          </div>
+        <div className="space-y-4">
+          {items.length === 0 ? (
+            <p className="text-slate-400 italic">No items yet...</p>
+          ) : (
+            items.map((item) => (
+              <div 
+                key={item.id} 
+                className="bg-white p-5 rounded-2xl shadow-md border-l-4 border-indigo-500 flex items-center gap-4"
+              >
+                <input type="checkbox" className="w-5 h-5 accent-indigo-600" />
+                <span className="text-lg text-slate-700">{item.description}</span>
+              </div>
+            ))
+          )}
         </div>
-      ))}
-
-      <button onClick={addItem} className="fixed bottom-6 right-6 bg-indigo-600 text-white p-4 rounded-full">
-        ➕
-      </button>
+      </div>
     </div>
   );
 }
