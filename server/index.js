@@ -1,158 +1,71 @@
-import express from 'express';
-import session from 'express-session';
-import cors from 'cors';
-import { pool } from './db.js';
-import { hashPassword, comparePassword } from './components/hash.js';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
-const app = express();
-const PORT = 3000;
+const API = 'https://to-do-list-8a22.onrender.com';
+axios.defaults.withCredentials = true;
 
-app.use(express.json());
+function List() {
+  const [lists, setLists] = useState([]);
+  const navigate = useNavigate();
 
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
-
-app.use(
-  session({
-    name: 'connect.sid',
-    secret: 'secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false,
-      httpOnly: true,
-      sameSite: 'lax'
+  const fetchLists = async () => {
+    try {
+      const res = await axios.get(`${API}/api/list`);
+      setLists(res.data);
+    } catch (err) {
+      console.error(err);
     }
-  })
-);
+  };
 
-app.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
+  useEffect(() => { fetchLists(); }, []);
 
-    const result = await pool.query(
-      'SELECT * FROM user_accounts WHERE username = $1',
-      [username]
-    );
+  const addList = async () => {
+    const { value } = await Swal.fire({
+      title: 'New List Title',
+      input: 'text',
+      showCancelButton: true,
+    });
+    if (value) {
+      await axios.post(`${API}/api/list`, { title: value });
+      fetchLists();
+    }
+  };
 
-    if (result.rows.length === 0)
-      return res.status(401).json({ success: false });
+  const deleteList = async (id, e) => {
+    e.stopPropagation();
+    const res = await Swal.fire({ title: 'Delete?', showCancelButton: true, icon: 'warning' });
+    if (res.isConfirmed) {
+      await axios.delete(`${API}/api/list/${id}`);
+      fetchLists();
+    }
+  };
 
-    const user = result.rows[0];
-    const match = await comparePassword(password, user.password);
+  return (
+    <div className="min-h-screen bg-slate-50 p-6">
+      <header className="max-w-2xl mx-auto mb-10 text-center">
+        <h1 className="text-4xl font-black text-indigo-600">My Workspace</h1>
+      </header>
 
-    if (!match)
-      return res.status(401).json({ success: false });
+      <div className="max-w-2xl mx-auto space-y-4">
+        {lists.map((l) => (
+          <div 
+            key={l.id} 
+            onClick={() => navigate(`/details/${l.id}`, { state: { title: l.title } })}
+            className="bg-white p-5 rounded-2xl shadow-md flex justify-between items-center cursor-pointer hover:shadow-lg transition"
+          >
+            <span className="text-xl font-bold text-slate-700">{l.title}</span>
+            <button onClick={(e) => deleteList(l.id, e)} className="text-red-400">🗑️</button>
+          </div>
+        ))}
+      </div>
 
-    req.session.user = { id: user.id, username: user.username };
-    res.json({ success: true });
-
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
-});
-
-app.post('/register', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const hashed = await hashPassword(password);
-
-    await pool.query(
-      'INSERT INTO user_accounts (username, password) VALUES ($1,$2)',
-      [username, hashed]
-    );
-
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
-});
-
-app.get('/api/list', async (req, res) => {
-  const result = await pool.query(
-    'SELECT * FROM list ORDER BY id ASC'
+      <button onClick={addList} className="fixed bottom-8 right-8 bg-indigo-600 text-white p-4 rounded-full shadow-xl">
+        + Add List
+      </button>
+    </div>
   );
-  res.json(result.rows);
-});
+}
 
-app.post('/api/list', async (req, res) => {
-  const { title } = req.body;
-  await pool.query(
-    'INSERT INTO list (title) VALUES ($1)',
-    [title]
-  );
-  res.json({ success: true });
-});
-
-app.put('/api/list/:id', async (req, res) => {
-  const { id } = req.params;
-  const { title } = req.body;
-
-  await pool.query(
-    'UPDATE list SET title = $1 WHERE id = $2',
-    [title, id]
-  );
-  res.json({ success: true });
-});
-
-app.delete('/api/list/:id', async (req, res) => {
-  const { id } = req.params;
-  await pool.query('DELETE FROM items WHERE list_id = $1', [id]);
-  await pool.query('DELETE FROM list WHERE id = $1', [id]);
-  res.json({ success: true });
-});
-
-app.get('/api/items/:listId', async (req, res) => {
-  const { listId } = req.params;
-  const result = await pool.query(
-    'SELECT * FROM items WHERE list_id = $1 ORDER BY id ASC',
-    [listId]
-  );
-  res.json(result.rows);
-});
-
-app.post('/api/items', async (req, res) => {
-  const { list_id, description, status } = req.body;
-  await pool.query(
-    'INSERT INTO items (list_id, description, status) VALUES ($1,$2,$3)',
-    [list_id, description, status]
-  );
-  res.json({ success: true });
-});
-
-app.put('/api/items/:id', async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
-  await pool.query(
-    'UPDATE items SET status = $1 WHERE id = $2',
-    [status, id]
-  );
-  res.json({ success: true });
-});
-
-app.patch('/api/items/:id', async (req, res) => {
-  const { id } = req.params;
-  const { description } = req.body;
-
-  await pool.query(
-    'UPDATE items SET description = $1 WHERE id = $2',
-    [description, id]
-  );
-  res.json({ success: true });
-});
-
-app.delete('/api/items/:id', async (req, res) => {
-  const { id } = req.params;
-  await pool.query(
-    'DELETE FROM items WHERE id = $1',
-    [id]
-  );
-  res.json({ success: true });
-});
-
-app.listen(PORT, () => {
-  console.log(`SERVER RUNNING http://localhost:${PORT}`);
-});
+export default List;

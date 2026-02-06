@@ -1,6 +1,5 @@
-import pkg from 'pg';
-const { Pool } = pkg;
-import dotenv from 'dotenv';
+import { Pool } from "pg";
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -12,15 +11,14 @@ if (process.env.NODE_ENV === "development") {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT) || 5432, 
+    port: Number(process.env.DB_PORT), // ensure number
   });
 } else {
-  // UPDATE: Mas malinis na connection string para sa Production
   newPool = new Pool({
-    connectionString: process.env.DATABASE_URL, 
     ssl: {
       rejectUnauthorized: false,
     },
+    connectionString: `postgres://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:5432/${process.env.DB_NAME}?options=project=${process.env.ENDPOINT_ID}`,
   });
 }
 
