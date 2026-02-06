@@ -11,7 +11,6 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
 
-  // Hardcoded para iwas error sa VITE_API_URL
   const API = 'https://to-do-list-8a22.onrender.com';
 
   const navigate = useNavigate();

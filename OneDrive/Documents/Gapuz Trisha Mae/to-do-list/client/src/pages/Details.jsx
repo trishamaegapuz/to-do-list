@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
-// Palitan ang import.meta.env ng direct link
 const API = 'https://to-do-list-8a22.onrender.com';
 axios.defaults.withCredentials = true;
 
@@ -13,12 +12,10 @@ function List() {
 
   const fetchLists = async () => {
     try {
-      // Sinunod ang /api/list route ng backend mo
       const res = await axios.get(`${API}/api/list`);
       setLists(res.data);
     } catch (err) {
       console.error(err);
-      // ITO ANG LUMALABAS SA SCREEN MO KANINA
       Swal.fire('Server Error', 'Failed to load lists. Backend might be sleeping.', 'error');
     }
   };
