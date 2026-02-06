@@ -1,71 +1,60 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import Swal from 'sweetalert2';
+import express from 'express';
+import session from 'express-session';
+import cors from 'cors';
+import { pool } from './db.js';
+import { hashPassword, comparePassword } from './components/hash.js';
 
-const API = 'https://to-do-list-8a22.onrender.com';
-axios.defaults.withCredentials = true;
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-function List() {
-  const [lists, setLists] = useState([]);
-  const navigate = useNavigate();
+app.set('trust proxy', 1); 
+app.use(express.json());
 
-  const fetchLists = async () => {
-    try {
-      const res = await axios.get(`${API}/api/list`);
-      setLists(res.data);
-    } catch (err) {
-      console.error(err);
+// CORS CONFIG
+app.use(cors({
+  origin: 'https://to-do-list-rho-sable-68.vercel.app',
+  credentials: true
+}));
+
+// SESSION CONFIG
+app.use(
+  session({
+    name: 'todo_sid',
+    secret: 'secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: true, 
+      httpOnly: true,
+      sameSite: 'none',
     }
-  };
+  })
+);
 
-  useEffect(() => { fetchLists(); }, []);
+// --- MGA ROUTES (API ONLY) ---
 
-  const addList = async () => {
-    const { value } = await Swal.fire({
-      title: 'New List Title',
-      input: 'text',
-      showCancelButton: true,
-    });
-    if (value) {
-      await axios.post(`${API}/api/list`, { title: value });
-      fetchLists();
-    }
-  };
+app.post('/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const result = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
+    if (result.rows.length === 0) return res.status(401).json({ success: false });
+    const user = result.rows[0];
+    const match = await comparePassword(password, user.password);
+    if (!match) return res.status(401).json({ success: false });
+    req.session.user = { id: user.id, username: user.username };
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false }); }
+});
 
-  const deleteList = async (id, e) => {
-    e.stopPropagation();
-    const res = await Swal.fire({ title: 'Delete?', showCancelButton: true, icon: 'warning' });
-    if (res.isConfirmed) {
-      await axios.delete(`${API}/api/list/${id}`);
-      fetchLists();
-    }
-  };
+app.get('/api/list', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
+    res.json(result.rows);
+  } catch (err) { res.status(500).json(err); }
+});
 
-  return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <header className="max-w-2xl mx-auto mb-10 text-center">
-        <h1 className="text-4xl font-black text-indigo-600">My Workspace</h1>
-      </header>
+// ... (Idagdag dito ang iba pang /api routes mo pero BAWAL ang JSX/HTML code)
 
-      <div className="max-w-2xl mx-auto space-y-4">
-        {lists.map((l) => (
-          <div 
-            key={l.id} 
-            onClick={() => navigate(`/details/${l.id}`, { state: { title: l.title } })}
-            className="bg-white p-5 rounded-2xl shadow-md flex justify-between items-center cursor-pointer hover:shadow-lg transition"
-          >
-            <span className="text-xl font-bold text-slate-700">{l.title}</span>
-            <button onClick={(e) => deleteList(l.id, e)} className="text-red-400">🗑️</button>
-          </div>
-        ))}
-      </div>
-
-      <button onClick={addList} className="fixed bottom-8 right-8 bg-indigo-600 text-white p-4 rounded-full shadow-xl">
-        + Add List
-      </button>
-    </div>
-  );
-}
-
-export default List;
+app.listen(PORT, () => {
+  console.log(`SERVER RUNNING ON PORT ${PORT}`);
+});
