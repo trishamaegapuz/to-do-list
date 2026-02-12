@@ -97,7 +97,7 @@ function Details() {
               <p className="text-indigo-400/80 font-bold text-sm uppercase">{items.filter(i => i.status !== 'completed').length} Tasks Pending</p>
             </div>
             <button onClick={handleAdd} className="bg-slate-800 border border-slate-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-600 transition-all text-xs uppercase tracking-tighter shadow-lg shadow-black/20">
-              Add Objective
+              Add Task
             </button>
           </header>
 
@@ -106,7 +106,7 @@ function Details() {
               <div className="text-center py-20 text-slate-600 italic">Accessing data...</div>
             ) : items.length === 0 ? (
               <div className="text-center py-20 bg-slate-800/10 rounded-[2rem] border border-slate-800">
-                <p className="text-slate-500 italic">No objectives assigned yet.</p>
+                <p className="text-slate-500 italic">No tasks assigned yet.</p>
               </div>
             ) : (
               items.map((item) => (

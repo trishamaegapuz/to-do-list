@@ -96,7 +96,7 @@ function List() {
               onClick={() => navigate('/')} 
               className="px-4 py-2 bg-slate-800/40 hover:bg-red-500/10 hover:text-red-400 border border-slate-700 rounded-xl text-slate-500 text-[10px] font-bold uppercase tracking-widest transition-all"
             >
-              ← Logout Session
+              ← Logout
             </button>
           </div>
           
@@ -131,7 +131,7 @@ function List() {
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                    <span className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-bold">Active Repository</span>
+                    <span className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-bold">Active</span>
                   </div>
                 </div>
 
