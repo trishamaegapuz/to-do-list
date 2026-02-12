@@ -18,16 +18,23 @@ app.use(cors({
 app.use(
   session({
     name: 'todo_sid',
-    secret: 'secret-key',
+    secret: 'secret-key', // Sa production, gamitin ang environment variable
     resave: false,
     saveUninitialized: false,
     cookie: {
       secure: true, 
       httpOnly: true,
       sameSite: 'none',
+      maxAge: 24 * 60 * 60 * 1000 // 1 day expiration
     }
   })
 );
+
+// HELPER: Middleware para i-check kung naka-login ang user
+const isAuthenticated = (req, res, next) => {
+  if (req.session.user) return next();
+  res.status(401).json({ error: "Unauthorized" });
+};
 
 // --- AUTH ---
 app.post('/register', async (req, res) => {
@@ -47,20 +54,28 @@ app.post('/login', async (req, res) => {
     const user = result.rows[0];
     const match = await comparePassword(password, user.password);
     if (!match) return res.status(401).json({ success: false });
+    
     req.session.user = { id: user.id, username: user.username };
     res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// --- LIST API ---
-app.get('/api/list', async (req, res) => {
+// Logout route para makabalik sa login page nang malinis ang session
+app.post('/logout', (req, res) => {
+  req.session.destroy();
+  res.clearCookie('todo_sid');
+  res.json({ success: true });
+});
+
+// --- LIST API (Inilagay natin ang isAuthenticated para safe) ---
+app.get('/api/list', isAuthenticated, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
     res.json(result.rows);
   } catch (err) { res.status(500).json(err); }
 });
 
-app.post('/api/list', async (req, res) => {
+app.post('/api/list', isAuthenticated, async (req, res) => {
   try {
     const { title } = req.body;
     const result = await pool.query('INSERT INTO list (title, status) VALUES ($1, $2) RETURNING *', [title, 'pending']);
@@ -68,7 +83,7 @@ app.post('/api/list', async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-app.put('/api/list/:id', async (req, res) => {
+app.put('/api/list/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
     const { title } = req.body;
@@ -77,10 +92,10 @@ app.put('/api/list/:id', async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-app.delete('/api/list/:id', async (req, res) => {
+app.delete('/api/list/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
-    // Manual Cascade: Burahin muna ang items bago ang list
+    // Transactional Delete (Mas safe kung sabay)
     await pool.query('DELETE FROM items WHERE list_id = $1', [id]);
     await pool.query('DELETE FROM list WHERE id = $1', [id]);
     res.json({ success: true });
@@ -88,7 +103,7 @@ app.delete('/api/list/:id', async (req, res) => {
 });
 
 // --- ITEMS API ---
-app.get('/api/items/:id', async (req, res) => {
+app.get('/api/items/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM items WHERE list_id = $1 ORDER BY id ASC', [id]);
@@ -96,25 +111,32 @@ app.get('/api/items/:id', async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-app.post('/api/items', async (req, res) => {
+app.post('/api/items', isAuthenticated, async (req, res) => {
   try {
     const { list_id, description, status } = req.body;
-    await pool.query('INSERT INTO items (list_id, description, status) VALUES ($1, $2, $3)', [list_id, description, status]);
+    await pool.query('INSERT INTO items (list_id, description, status) VALUES ($1, $2, $3)', [list_id, description, status || 'pending']);
     res.json({ success: true });
   } catch (err) { res.status(500).json(err); }
 });
 
-app.put('/api/items/:id', async (req, res) => {
+// FIXED: Mas matalinong UPDATE logic
+app.put('/api/items/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, description } = req.body;
-    if (status) await pool.query('UPDATE items SET status = $1 WHERE id = $2', [status, id]);
-    if (description) await pool.query('UPDATE items SET description = $1 WHERE id = $2', [description, id]);
+
+    if (status !== undefined) {
+      await pool.query('UPDATE items SET status = $1 WHERE id = $2', [status, id]);
+    }
+    if (description !== undefined) {
+      await pool.query('UPDATE items SET description = $1 WHERE id = $2', [description, id]);
+    }
+    
     res.json({ success: true });
   } catch (err) { res.status(500).json(err); }
 });
 
-app.delete('/api/items/:id', async (req, res) => {
+app.delete('/api/items/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
     await pool.query('DELETE FROM items WHERE id = $1', [id]);
