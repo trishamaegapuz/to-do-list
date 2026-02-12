@@ -18,7 +18,11 @@ function List() {
       const res = await axios.get(`${API}/api/list`);
       setLists(res.data);
     } catch (err) { 
-      console.error(err); 
+      console.error("Fetch Error:", err);
+      // Kung 401 (Unauthorized), balik sa login page
+      if (err.response && err.response.status === 401) {
+        navigate('/');
+      }
     } finally { 
       setLoading(false); 
     }
@@ -27,6 +31,16 @@ function List() {
   useEffect(() => { 
     fetchLists(); 
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API}/logout`);
+      navigate('/');
+    } catch (err) {
+      console.error(err);
+      navigate('/'); // Force navigate pa rin
+    }
+  };
 
   const handleAdd = async () => {
     const { value: title } = await Swal.fire({
@@ -40,8 +54,12 @@ function List() {
       customClass: { popup: 'rounded-[2rem] border border-slate-700' }
     });
     if (title) {
-      await axios.post(`${API}/api/list`, { title });
-      fetchLists();
+      try {
+        await axios.post(`${API}/api/list`, { title });
+        fetchLists();
+      } catch (err) {
+        if(err.response?.status === 401) navigate('/');
+      }
     }
   };
 
@@ -84,16 +102,13 @@ function List() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-indigo-500/30">
-      {/* Header component has logo on the right based on our update */}
       <Header />
       
       <main className="flex-grow p-6 pb-32">
         <header className="max-w-2xl mx-auto mb-12 mt-4">
-          
-          {/* Logout Button positioned to the Left */}
           <div className="flex justify-start mb-10">
             <button 
-              onClick={() => navigate('/')} 
+              onClick={handleLogout} 
               className="px-4 py-2 bg-slate-800/40 hover:bg-red-500/10 hover:text-red-400 border border-slate-700 rounded-xl text-slate-500 text-[10px] font-bold uppercase tracking-widest transition-all"
             >
               ← Logout
@@ -136,18 +151,8 @@ function List() {
                 </div>
 
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                  <button 
-                    onClick={(e) => handleEdit(e, l.id, l.title)} 
-                    className="p-3 bg-slate-800/50 rounded-xl hover:bg-indigo-600 hover:text-white transition-all border border-slate-700"
-                  >
-                    ✏️
-                  </button>
-                  <button 
-                    onClick={(e) => handleDelete(e, l.id)} 
-                    className="p-3 bg-slate-800/50 rounded-xl hover:bg-red-500 hover:text-white transition-all border border-slate-700"
-                  >
-                    🗑️
-                  </button>
+                  <button onClick={(e) => handleEdit(e, l.id, l.title)} className="p-3 bg-slate-800/50 rounded-xl hover:bg-indigo-600 hover:text-white transition-all border border-slate-700">✏️</button>
+                  <button onClick={(e) => handleDelete(e, l.id)} className="p-3 bg-slate-800/50 rounded-xl hover:bg-red-500 hover:text-white transition-all border border-slate-700">🗑️</button>
                 </div>
               </div>
             ))
@@ -155,12 +160,8 @@ function List() {
         </div>
       </main>
 
-      {/* Floating Action Button (FAB) */}
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-xs px-6 z-40">
-        <button 
-          onClick={handleAdd} 
-          className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-2xl shadow-indigo-900/40 hover:bg-indigo-500 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 text-xs uppercase tracking-widest"
-        >
+        <button onClick={handleAdd} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-2xl shadow-indigo-900/40 hover:bg-indigo-500 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 text-xs uppercase tracking-widest">
           <span className="text-lg">+</span> Create New List
         </button>
       </div>
