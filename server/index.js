@@ -7,12 +7,12 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Importante ito para sa Render/Vercel deployment
+// IMPORTANTE: Kailangan ito para gumana ang Secure Cookies sa Render/Vercel
 app.set('trust proxy', 1); 
 
 app.use(express.json());
 
-// Mas pinalawak na CORS config
+// Pinalakas na CORS config para sa Cross-Origin Requests
 app.use(cors({
   origin: 'https://to-do-list-rho-sable-68.vercel.app',
   credentials: true,
@@ -23,74 +23,97 @@ app.use(cors({
 app.use(
   session({
     name: 'todo_sid',
-    secret: process.env.SESSION_SECRET || 'secret-key',
-    resave: true, // Gawin itong true para ma-refresh ang touch sa session
+    secret: 'taskflow-secret-key-2026', // Maaari mong palitan ito
+    resave: true, // Ginawang true para ma-refresh ang session sa bawat request
     saveUninitialized: false,
-    proxy: true, // Importante para sa Render deployment
     cookie: {
-      secure: true, // REQUIRED para sa sameSite: 'none'
+      secure: true, // Required dahil naka-HTTPS ang Vercel at Render
       httpOnly: true,
-      sameSite: 'none', // REQUIRED para sa Cross-Domain (Vercel to Render)
-      maxAge: 24 * 60 * 60 * 1000,
-      path: '/'
+      sameSite: 'none', // Sobrang importante para sa Mobile/Cross-site cookies
+      maxAge: 24 * 60 * 60 * 1000 // Mag-eexpire matapos ang 1 araw
     }
   })
 );
 
-// Middleware para sa Auth
+// MIDDLEWARE: Proteksyon para sa iyong mga API
 const isAuthenticated = (req, res, next) => {
   if (req.session && req.session.user) {
     return next();
   }
-  res.status(401).json({ error: "Unauthorized - Please login again" });
+  res.status(401).json({ error: "Unauthorized - Session Expired" });
 };
 
-// --- AUTH ---
+// --- AUTH ROUTES ---
+
 app.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
     const hashedPassword = await hashPassword(password);
     await pool.query('INSERT INTO user_accounts (username, password) VALUES ($1, $2)', [username, hashedPassword]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false }); }
+  } catch (err) { 
+    res.status(500).json({ success: false, error: err.message }); 
+  }
 });
 
 app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const result = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
-    if (result.rows.length === 0) return res.status(401).json({ success: false });
+    
+    if (result.rows.length === 0) return res.status(401).json({ success: false, message: "User not found" });
     
     const user = result.rows[0];
     const match = await comparePassword(password, user.password);
-    if (!match) return res.status(401).json({ success: false });
     
-    // Siguraduhin na nai-save ang session bago mag-respond
+    if (!match) return res.status(401).json({ success: false, message: "Wrong password" });
+    
+    // I-save ang user info sa session
     req.session.user = { id: user.id, username: user.username };
+    
+    // FORCE SAVE: Tinitiyak na naka-save ang session bago mag-reply sa frontend
     req.session.save((err) => {
-      if (err) return res.status(500).json({ success: false });
+      if (err) {
+        console.error("Session Save Error:", err);
+        return res.status(500).json({ success: false });
+      }
       res.json({ success: true });
     });
-  } catch (err) { res.status(500).json({ success: false }); }
+  } catch (err) { 
+    res.status(500).json({ success: false, error: err.message }); 
+  }
 });
 
 app.post('/logout', (req, res) => {
-  req.session.destroy();
-  res.clearCookie('todo_sid', { 
-    secure: true, 
-    sameSite: 'none', 
-    path: '/' 
+  req.session.destroy((err) => {
+    if (err) return res.status(500).json({ success: false });
+    res.clearCookie('todo_sid', {
+      secure: true,
+      sameSite: 'none',
+      path: '/'
+    });
+    res.json({ success: true });
   });
-  res.json({ success: true });
 });
 
-// --- LIST API ---
+// Check Auth Status Route (Para sa Frontend App.jsx/List.jsx)
+app.get('/api/check-auth', (req, res) => {
+  if (req.session.user) {
+    res.json({ authenticated: true, user: req.session.user });
+  } else {
+    res.status(401).json({ authenticated: false });
+  }
+});
+
+// --- LIST API (With Authentication) ---
+
 app.get('/api/list', isAuthenticated, async (req, res) => {
   try {
-    // Kinukuha lang ang list na pagmamay-ari ng naka-login na user
     const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
     res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: "Database error" }); }
+  } catch (err) { 
+    res.status(500).json({ error: "Database error" }); 
+  }
 });
 
 app.post('/api/list', isAuthenticated, async (req, res) => {
@@ -113,13 +136,15 @@ app.put('/api/list/:id', isAuthenticated, async (req, res) => {
 app.delete('/api/list/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
+    // Manual Cascade delete
     await pool.query('DELETE FROM items WHERE list_id = $1', [id]);
     await pool.query('DELETE FROM list WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json(err); }
 });
 
-// --- ITEMS API ---
+// --- ITEMS API (With Authentication) ---
+
 app.get('/api/items/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
