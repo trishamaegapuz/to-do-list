@@ -23,14 +23,16 @@ app.use(cors({
 app.use(
   session({
     name: 'todo_sid',
-    secret: process.env.SESSION_SECRET || 'secret-key', 
-    resave: false,
+    secret: process.env.SESSION_SECRET || 'secret-key',
+    resave: true, // Gawin itong true para ma-refresh ang touch sa session
     saveUninitialized: false,
+    proxy: true, // Importante para sa Render deployment
     cookie: {
-      secure: true, // Kinakailangan dahil HTTPS ang Vercel at Render
+      secure: true, // REQUIRED para sa sameSite: 'none'
       httpOnly: true,
-      sameSite: 'none', // Importante para sa Cross-Domain (Render to Vercel)
-      maxAge: 24 * 60 * 60 * 1000 
+      sameSite: 'none', // REQUIRED para sa Cross-Domain (Vercel to Render)
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/'
     }
   })
 );
