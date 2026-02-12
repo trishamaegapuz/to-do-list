@@ -37,8 +37,12 @@ function Details() {
       inputPlaceholder: 'What needs to be done?',
       showCancelButton: true,
       confirmButtonColor: '#6366f1',
+      cancelButtonColor: '#475569',
       background: '#1e293b',
-      color: '#fff'
+      color: '#fff',
+      customClass: {
+        popup: 'rounded-[2rem] border border-slate-700'
+      }
     });
     if (desc) {
       try {
@@ -50,7 +54,6 @@ function Details() {
     }
   };
 
-  // --- IBINALIK NA EDIT FUNCTION ---
   const handleEditItem = async (itemId, oldDesc) => {
     const { value: newDesc } = await Swal.fire({
       title: 'Edit Task',
@@ -58,8 +61,12 @@ function Details() {
       inputValue: oldDesc,
       showCancelButton: true,
       confirmButtonColor: '#6366f1',
+      cancelButtonColor: '#475569',
       background: '#1e293b',
-      color: '#fff'
+      color: '#fff',
+      customClass: {
+        popup: 'rounded-[2rem] border border-slate-700'
+      }
     });
     if (newDesc && newDesc !== oldDesc) {
       try {
@@ -81,12 +88,41 @@ function Details() {
     }
   };
 
+  // --- UPDATED DELETE WITH CONFIRMATION PROMPT ---
   const deleteItem = async (itemId) => {
-    try {
-      await axios.delete(`${API}/api/items/${itemId}`);
-      fetchItems();
-    } catch (err) {
-      if (err.response?.status === 401) navigate('/');
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444', // Red for delete
+      cancelButtonColor: '#475569', // Slate for cancel
+      confirmButtonText: 'Yes, delete it!',
+      background: '#1e293b',
+      color: '#fff',
+      customClass: {
+        popup: 'rounded-[2rem] border border-slate-700'
+      }
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await axios.delete(`${API}/api/items/${itemId}`);
+        fetchItems();
+        // Optional: Magpakita ng success message
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'Your task has been removed.',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false,
+          background: '#1e293b',
+          color: '#fff',
+          customClass: { popup: 'rounded-[2rem] border border-slate-700' }
+        });
+      } catch (err) {
+        if (err.response?.status === 401) navigate('/');
+      }
     }
   };
 
@@ -95,7 +131,7 @@ function Details() {
       <Header />
       <main className="flex-grow p-6 pb-32">
         <div className="max-w-2xl mx-auto">
-          <button onClick={() => navigate('/list')} className="mb-8 text-slate-500 text-[10px] font-bold uppercase tracking-widest hover:text-indigo-400">
+          <button onClick={() => navigate('/list')} className="mb-8 text-slate-500 text-[10px] font-bold uppercase tracking-widest hover:text-indigo-400 transition-colors">
             ← Back to Lists
           </button>
 
@@ -106,7 +142,10 @@ function Details() {
 
           <div className="space-y-3">
             {loading ? (
-              <div className="text-center py-10 text-indigo-400 animate-spin">⌛</div>
+              <div className="flex flex-col items-center justify-center py-10 gap-2">
+                <div className="w-6 h-6 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Loading Tasks</p>
+              </div>
             ) : items.length === 0 ? (
               <div className="text-center py-10 bg-slate-800/10 rounded-3xl border border-slate-800 text-slate-600 italic">No tasks yet.</div>
             ) : (
@@ -116,13 +155,12 @@ function Details() {
                     type="checkbox" 
                     checked={item.status === 'completed'} 
                     onChange={() => toggleStatus(item.id, item.status)}
-                    className="w-5 h-5 rounded-lg border-slate-700 bg-slate-900 checked:bg-indigo-600 transition-all cursor-pointer"
+                    className="w-5 h-5 rounded-lg border-slate-700 bg-slate-900 checked:bg-indigo-600 transition-all cursor-pointer accent-indigo-500"
                   />
-                  <span className={`flex-grow font-medium ${item.status === 'completed' ? 'line-through text-slate-600' : 'text-slate-200'}`}>
+                  <span className={`flex-grow font-medium transition-all ${item.status === 'completed' ? 'line-through text-slate-600' : 'text-slate-200'}`}>
                     {item.description}
                   </span>
                   
-                  {/* EDIT BUTTON */}
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button onClick={() => handleEditItem(item.id, item.description)} className="p-2 hover:bg-indigo-500/10 rounded-lg text-slate-400 hover:text-indigo-400 transition-all">
                       ✏️
@@ -139,7 +177,7 @@ function Details() {
       </main>
 
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-xs px-6">
-        <button onClick={handleAddItem} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl hover:bg-indigo-500 transition-all uppercase text-xs tracking-widest">
+        <button onClick={handleAddItem} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl hover:bg-indigo-500 transition-all uppercase text-xs tracking-widest active:scale-95">
           + Add New Task
         </button>
       </div>
