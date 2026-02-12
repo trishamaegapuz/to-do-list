@@ -17,11 +17,16 @@ function List() {
     try {
       const res = await axios.get(`${API}/api/list`);
       setLists(res.data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch (err) { 
+      console.error(err); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
-  useEffect(() => { fetchLists(); }, []);
+  useEffect(() => { 
+    fetchLists(); 
+  }, []);
 
   const handleAdd = async () => {
     const { value: title } = await Swal.fire({
@@ -79,45 +84,70 @@ function List() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-indigo-500/30">
+      {/* Header component has logo on the right based on our update */}
       <Header />
       
       <main className="flex-grow p-6 pb-32">
-        <header className="max-w-2xl mx-auto mb-12 mt-8 text-center">
-          <button 
-            onClick={() => navigate('/')} 
-            className="mb-8 px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-full text-slate-400 text-xs transition-all mx-auto block"
-          >
-            ← Logout Session
-          </button>
+        <header className="max-w-2xl mx-auto mb-12 mt-4">
           
-          <h1 className="text-5xl font-black tracking-tight text-white mb-2">
-            My <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Workspace</span>
-          </h1>
-          <p className="text-slate-500 font-medium italic">Streamline your workflow with precision</p>
+          {/* Logout Button positioned to the Left */}
+          <div className="flex justify-start mb-10">
+            <button 
+              onClick={() => navigate('/')} 
+              className="px-4 py-2 bg-slate-800/40 hover:bg-red-500/10 hover:text-red-400 border border-slate-700 rounded-xl text-slate-500 text-[10px] font-bold uppercase tracking-widest transition-all"
+            >
+              ← Logout Session
+            </button>
+          </div>
+          
+          <div className="text-center space-y-2">
+            <h1 className="text-5xl font-black tracking-tighter text-white">
+              My <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Workspace</span>
+            </h1>
+            <p className="text-slate-500 font-medium italic text-sm">Organize your daily workflow with precision</p>
+          </div>
         </header>
 
         <div className="max-w-2xl mx-auto grid gap-4">
           {loading ? (
-            <div className="flex justify-center py-20 text-indigo-400 font-bold animate-pulse">Syncing environment...</div>
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+               <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+               <p className="text-indigo-400 text-xs font-bold uppercase tracking-[0.3em]">Syncing Environment</p>
+            </div>
           ) : lists.length === 0 ? (
-            <div className="text-center py-20 bg-slate-800/20 rounded-[3rem] border border-dashed border-slate-700">
-              <p className="text-slate-500 text-lg">No active workspaces found.</p>
+            <div className="text-center py-20 bg-slate-800/10 rounded-[3rem] border border-dashed border-slate-800">
+              <p className="text-slate-600 text-sm font-medium italic">Workspace is currently empty.</p>
             </div>
           ) : (
             lists.map((l) => (
               <div 
                 key={l.id} 
                 onClick={() => navigate(`/details/${l.id}`, { state: { title: l.title } })}
-                className="group bg-slate-800/40 backdrop-blur-sm p-6 rounded-[2rem] border border-slate-700/50 hover:border-indigo-500/50 hover:bg-slate-800/60 flex justify-between items-center cursor-pointer transition-all duration-300"
+                className="group bg-slate-800/30 backdrop-blur-sm p-7 rounded-[2rem] border border-slate-800/50 hover:border-indigo-500/40 hover:bg-slate-800/50 flex justify-between items-center cursor-pointer transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5"
               >
-                <div className="flex flex-col">
-                  <span className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors">{l.title}</span>
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500 mt-1">Open Repository</span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors tracking-tight">
+                    {l.title}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                    <span className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-bold">Active Repository</span>
+                  </div>
                 </div>
 
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={(e) => handleEdit(e, l.id, l.title)} className="p-2 hover:text-indigo-400 transition-colors">✏️</button>
-                  <button onClick={(e) => handleDelete(e, l.id)} className="p-2 hover:text-red-400 transition-colors">🗑️</button>
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                  <button 
+                    onClick={(e) => handleEdit(e, l.id, l.title)} 
+                    className="p-3 bg-slate-800/50 rounded-xl hover:bg-indigo-600 hover:text-white transition-all border border-slate-700"
+                  >
+                    ✏️
+                  </button>
+                  <button 
+                    onClick={(e) => handleDelete(e, l.id)} 
+                    className="p-3 bg-slate-800/50 rounded-xl hover:bg-red-500 hover:text-white transition-all border border-slate-700"
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
             ))
@@ -125,9 +155,13 @@ function List() {
         </div>
       </main>
 
+      {/* Floating Action Button (FAB) */}
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-xs px-6 z-40">
-        <button onClick={handleAdd} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-900/20 hover:bg-indigo-500 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2">
-          <span className="text-xl">+</span> Create New List
+        <button 
+          onClick={handleAdd} 
+          className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-2xl shadow-indigo-900/40 hover:bg-indigo-500 hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 text-xs uppercase tracking-widest"
+        >
+          <span className="text-lg">+</span> Create New List
         </button>
       </div>
 

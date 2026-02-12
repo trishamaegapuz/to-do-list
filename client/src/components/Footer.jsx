@@ -1,16 +1,16 @@
 function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer className="mt-auto py-10 border-t border-slate-100 bg-white">
-      <div className="max-w-2xl mx-auto px-6 text-center">
-        <p className="text-slate-400 text-sm font-medium">
-          © {year} TaskFlow Workspace. All rights reserved.
+    <footer className="mt-auto py-4 border-t border-slate-800 bg-[#0f172a]">
+      <div className="max-w-4xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-2">
+        <p className="text-slate-500 text-[11px] font-medium">
+          © {year} TaskFlow Workspace.
         </p>
-        <div className="flex justify-center gap-4 mt-2 text-xs text-slate-300 uppercase tracking-widest font-bold">
+        <div className="flex gap-3 text-[9px] text-slate-600 uppercase tracking-[0.2em] font-bold">
           <span>Focus</span>
-          <span>•</span>
+          <span className="text-slate-800">•</span>
           <span>Organize</span>
-          <span>•</span>
+          <span className="text-slate-800">•</span>
           <span>Achieve</span>
         </div>
       </div>
