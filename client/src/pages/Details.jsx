@@ -20,9 +20,7 @@ function Details() {
       const res = await axios.get(`${API}/api/items/${id}`);
       setItems(res.data);
     } catch (err) {
-      if (err.response?.status === 401) {
-        navigate('/');
-      }
+      if (err.response?.status === 401) navigate('/');
     } finally {
       setLoading(false);
     }
@@ -45,6 +43,27 @@ function Details() {
     if (desc) {
       try {
         await axios.post(`${API}/api/items`, { list_id: id, description: desc, status: 'pending' });
+        fetchItems();
+      } catch (err) {
+        if (err.response?.status === 401) navigate('/');
+      }
+    }
+  };
+
+  // --- IBINALIK NA EDIT FUNCTION ---
+  const handleEditItem = async (itemId, oldDesc) => {
+    const { value: newDesc } = await Swal.fire({
+      title: 'Edit Task',
+      input: 'text',
+      inputValue: oldDesc,
+      showCancelButton: true,
+      confirmButtonColor: '#6366f1',
+      background: '#1e293b',
+      color: '#fff'
+    });
+    if (newDesc && newDesc !== oldDesc) {
+      try {
+        await axios.put(`${API}/api/items/${itemId}`, { description: newDesc });
         fetchItems();
       } catch (err) {
         if (err.response?.status === 401) navigate('/');
@@ -102,9 +121,16 @@ function Details() {
                   <span className={`flex-grow font-medium ${item.status === 'completed' ? 'line-through text-slate-600' : 'text-slate-200'}`}>
                     {item.description}
                   </span>
-                  <button onClick={() => deleteItem(item.id)} className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/10 rounded-lg text-red-500 transition-all">
-                    🗑️
-                  </button>
+                  
+                  {/* EDIT BUTTON */}
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <button onClick={() => handleEditItem(item.id, item.description)} className="p-2 hover:bg-indigo-500/10 rounded-lg text-slate-400 hover:text-indigo-400 transition-all">
+                      ✏️
+                    </button>
+                    <button onClick={() => deleteItem(item.id)} className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 transition-all">
+                      🗑️
+                    </button>
+                  </div>
                 </div>
               ))
             )}
