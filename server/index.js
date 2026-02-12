@@ -7,33 +7,40 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Importante ito para sa Render/Vercel deployment
 app.set('trust proxy', 1); 
+
 app.use(express.json());
 
+// Mas pinalawak na CORS config
 app.use(cors({
   origin: 'https://to-do-list-rho-sable-68.vercel.app',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(
   session({
     name: 'todo_sid',
-    secret: 'secret-key', // Sa production, gamitin ang environment variable
+    secret: process.env.SESSION_SECRET || 'secret-key', 
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true, 
+      secure: true, // Kinakailangan dahil HTTPS ang Vercel at Render
       httpOnly: true,
-      sameSite: 'none',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day expiration
+      sameSite: 'none', // Importante para sa Cross-Domain (Render to Vercel)
+      maxAge: 24 * 60 * 60 * 1000 
     }
   })
 );
 
-// HELPER: Middleware para i-check kung naka-login ang user
+// Middleware para sa Auth
 const isAuthenticated = (req, res, next) => {
-  if (req.session.user) return next();
-  res.status(401).json({ error: "Unauthorized" });
+  if (req.session && req.session.user) {
+    return next();
+  }
+  res.status(401).json({ error: "Unauthorized - Please login again" });
 };
 
 // --- AUTH ---
@@ -51,28 +58,37 @@ app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const result = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
     if (result.rows.length === 0) return res.status(401).json({ success: false });
+    
     const user = result.rows[0];
     const match = await comparePassword(password, user.password);
     if (!match) return res.status(401).json({ success: false });
     
+    // Siguraduhin na nai-save ang session bago mag-respond
     req.session.user = { id: user.id, username: user.username };
-    res.json({ success: true });
+    req.session.save((err) => {
+      if (err) return res.status(500).json({ success: false });
+      res.json({ success: true });
+    });
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// Logout route para makabalik sa login page nang malinis ang session
 app.post('/logout', (req, res) => {
   req.session.destroy();
-  res.clearCookie('todo_sid');
+  res.clearCookie('todo_sid', { 
+    secure: true, 
+    sameSite: 'none', 
+    path: '/' 
+  });
   res.json({ success: true });
 });
 
-// --- LIST API (Inilagay natin ang isAuthenticated para safe) ---
+// --- LIST API ---
 app.get('/api/list', isAuthenticated, async (req, res) => {
   try {
+    // Kinukuha lang ang list na pagmamay-ari ng naka-login na user
     const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
     res.json(result.rows);
-  } catch (err) { res.status(500).json(err); }
+  } catch (err) { res.status(500).json({ error: "Database error" }); }
 });
 
 app.post('/api/list', isAuthenticated, async (req, res) => {
@@ -95,7 +111,6 @@ app.put('/api/list/:id', isAuthenticated, async (req, res) => {
 app.delete('/api/list/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
-    // Transactional Delete (Mas safe kung sabay)
     await pool.query('DELETE FROM items WHERE list_id = $1', [id]);
     await pool.query('DELETE FROM list WHERE id = $1', [id]);
     res.json({ success: true });
@@ -119,19 +134,12 @@ app.post('/api/items', isAuthenticated, async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-// FIXED: Mas matalinong UPDATE logic
 app.put('/api/items/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, description } = req.body;
-
-    if (status !== undefined) {
-      await pool.query('UPDATE items SET status = $1 WHERE id = $2', [status, id]);
-    }
-    if (description !== undefined) {
-      await pool.query('UPDATE items SET description = $1 WHERE id = $2', [description, id]);
-    }
-    
+    if (status !== undefined) await pool.query('UPDATE items SET status = $1 WHERE id = $2', [status, id]);
+    if (description !== undefined) await pool.query('UPDATE items SET description = $1 WHERE id = $2', [description, id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json(err); }
 });
