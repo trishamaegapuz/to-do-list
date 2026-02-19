@@ -7,12 +7,11 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// NAPAKAHALAGA: Kailangan ito para gumana ang Secure Cookies sa Render/Vercel proxy
+// NAPAKAHALAGA para sa Render/Vercel HTTPS Proxy
 app.set('trust proxy', 1); 
 
 app.use(express.json());
 
-// Fixed CORS: Siguraduhin na walang trailing slash (/) ang origin URL
 app.use(cors({
   origin: 'https://to-do-list-rho-sable-68.vercel.app',
   credentials: true,
@@ -24,24 +23,20 @@ app.use(
   session({
     name: 'todo_sid',
     secret: 'taskflow-secret-key-2026', 
-    resave: false, // Iniba sa false para sa better performance
+    resave: true, // Ginawang TRUE para manatiling buhay ang session
     saveUninitialized: false,
     proxy: true, 
     cookie: {
-      secure: true, // Dahil naka-HTTPS ang Vercel at Render
+      secure: true, 
       httpOnly: true,
-      sameSite: 'none', // Importante para sa Cross-site cookies
-      maxAge: 24 * 60 * 60 * 1000,
-      partitioned: true // Dagdag security/compatibility sa mga bagong browser
+      sameSite: 'none', 
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      partitioned: true 
     }
   })
 );
 
-// MIDDLEWARE: Proteksyon para sa iyong mga API
 const isAuthenticated = (req, res, next) => {
-  // Debug log para makita kung may session (Optional: Tanggalin sa production)
-  console.log("Checking session for user:", req.session.user);
-  
   if (req.session && req.session.user) {
     return next();
   }
@@ -56,47 +51,31 @@ app.post('/register', async (req, res) => {
     const hashedPassword = await hashPassword(password);
     await pool.query('INSERT INTO user_accounts (username, password) VALUES ($1, $2)', [username, hashedPassword]);
     res.json({ success: true });
-  } catch (err) { 
-    res.status(500).json({ success: false, error: err.message }); 
-  }
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const result = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
-    
     if (result.rows.length === 0) return res.status(401).json({ success: false, message: "User not found" });
     
     const user = result.rows[0];
     const match = await comparePassword(password, user.password);
-    
     if (!match) return res.status(401).json({ success: false, message: "Wrong password" });
     
-    // I-save ang user info sa session
     req.session.user = { id: user.id, username: user.username };
     
-    // FORCE SAVE: Siguraduhing naka-save ang session bago mag-reply
     req.session.save((err) => {
-      if (err) {
-        console.error("Session Save Error:", err);
-        return res.status(500).json({ success: false });
-      }
+      if (err) return res.status(500).json({ success: false });
       res.json({ success: true });
     });
-  } catch (err) { 
-    res.status(500).json({ success: false, error: err.message }); 
-  }
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/logout', (req, res) => {
   req.session.destroy((err) => {
-    if (err) return res.status(500).json({ success: false });
-    res.clearCookie('todo_sid', {
-      secure: true,
-      sameSite: 'none',
-      path: '/'
-    });
+    res.clearCookie('todo_sid', { secure: true, sameSite: 'none', path: '/' });
     res.json({ success: true });
   });
 });
@@ -109,16 +88,13 @@ app.get('/api/check-auth', (req, res) => {
   }
 });
 
-// --- LIST API (Example of protected route) ---
+// --- LIST API ---
 
 app.get('/api/list', isAuthenticated, async (req, res) => {
   try {
-    // Kinukuha lang ang tasks ng user (Dapat may user_id ang table mo)
     const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
     res.json(result.rows);
-  } catch (err) { 
-    res.status(500).json({ error: "Database error" }); 
-  }
+  } catch (err) { res.status(500).json({ error: "Database error" }); }
 });
 
 app.post('/api/list', isAuthenticated, async (req, res) => {
