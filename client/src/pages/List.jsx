@@ -19,7 +19,6 @@ function List() {
       setLists(res.data);
     } catch (err) {
       console.error(err);
-      // Kapag ang error ay 401, ibig sabihin expired o wala ang session sa phone
       if (err.response && err.response.status === 401) {
         navigate('/');
       }
@@ -37,7 +36,7 @@ function List() {
       await axios.post(`${API}/logout`);
       navigate('/');
     } catch (err) {
-      navigate('/'); // Force navigate kahit mag-error ang logout
+      navigate('/'); 
     }
   };
 

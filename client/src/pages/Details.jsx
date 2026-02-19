@@ -88,15 +88,14 @@ function Details() {
     }
   };
 
-  // --- UPDATED DELETE WITH CONFIRMATION PROMPT ---
   const deleteItem = async (itemId) => {
     const result = await Swal.fire({
       title: 'Are you sure?',
       text: "You won't be able to revert this!",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#ef4444', // Red for delete
-      cancelButtonColor: '#475569', // Slate for cancel
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#475569',
       confirmButtonText: 'Yes, delete it!',
       background: '#1e293b',
       color: '#fff',
@@ -109,7 +108,6 @@ function Details() {
       try {
         await axios.delete(`${API}/api/items/${itemId}`);
         fetchItems();
-        // Optional: Magpakita ng success message
         Swal.fire({
           title: 'Deleted!',
           text: 'Your task has been removed.',
