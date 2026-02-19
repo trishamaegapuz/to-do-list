@@ -13,15 +13,14 @@ function List() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Inayos ang logic dito para mas matibay ang auth check
   const fetchLists = async () => {
     try {
       const res = await axios.get(`${API}/api/list`);
       setLists(res.data);
     } catch (err) {
-      console.error("Auth Error in List:", err);
+      console.error(err);
+      // Kapag ang error ay 401, ibig sabihin expired o wala ang session sa phone
       if (err.response && err.response.status === 401) {
-        // Kapag unauthorized, balik sa login
         navigate('/');
       }
     } finally {
@@ -36,10 +35,9 @@ function List() {
   const handleLogout = async () => {
     try {
       await axios.post(`${API}/logout`);
-      // Hard refresh para malinis lahat ng cookies
-      window.location.href = '/'; 
+      navigate('/');
     } catch (err) {
-      window.location.href = '/'; 
+      navigate('/'); // Force navigate kahit mag-error ang logout
     }
   };
 

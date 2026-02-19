@@ -3,7 +3,6 @@ import axios from 'axios';
 import Swal from 'sweetalert2'; 
 import { useNavigate } from 'react-router-dom';
 
-// REQUIRED: Para ipadala ang credentials (cookies) sa bawat request
 axios.defaults.withCredentials = true;
 
 function App() {
@@ -12,7 +11,9 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
 
+  // Hardcoded para iwas error sa VITE_API_URL
   const API = 'https://to-do-list-8a22.onrender.com';
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -26,39 +27,34 @@ function App() {
       const res = await axios.post(url, payload);
 
       if (res.data.success) {
+        await Swal.fire({
+          icon: 'success',
+          title: isSignup ? 'Registration Success!' : 'Welcome Back!',
+          text: isSignup ? 'You can now log in.' : 'Redirecting to your workspace...',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
         if (isSignup) {
-          await Swal.fire({
-            icon: 'success',
-            title: 'Registration Success!',
-            text: 'You can now log in.',
-            timer: 2000,
-            showConfirmButton: false,
-          });
           setIsSignup(false);
           setUsername('');
           setPassword('');
         } else {
-          // LOGIN SUCCESS
-          await Swal.fire({
-            icon: 'success',
-            title: 'Welcome Back!',
-            text: 'Redirecting to your workspace...',
-            timer: 1500,
-            showConfirmButton: false,
-          });
-          
-          // Mas mainam gamitin ang navigate('/list') pero kung ayaw pa rin, 
-          // gamitin ang: window.location.href = '/list';
           navigate('/list');
         }
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Authentication Failed',
+          text: 'Maling username o password.',
+        });
       }
     } catch (err) {
       console.error('ERROR:', err);
-      const msg = err.response?.data?.message || 'Maling username o password.';
       Swal.fire({
         icon: 'error',
-        title: 'Authentication Failed',
-        text: msg,
+        title: 'Connection Issue',
+        text: 'Hindi makakonekta sa server. Pakihintay ng 1 minuto para magising ang Render.',
       });
     } finally {
       setLoading(false);
@@ -68,36 +64,52 @@ function App() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-4">
       <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl">
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">
             {isSignup ? 'Create Account' : 'Welcome Back'}
           </h1>
+          <p className="text-gray-500 text-sm mt-2">
+            {isSignup ? 'Register to start your tasks' : 'Please log in to your account'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            disabled={loading}
-          />
-          <input
-            type="password"
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Username</label>
+            <input
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Password</label>
+            <input
+              type="password"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg text-white font-bold bg-indigo-600 hover:bg-indigo-700 transition"
+            className={`w-full py-3 rounded-lg text-white font-bold text-lg shadow-lg transition-all transform active:scale-95 ${
+              loading
+                ? 'bg-indigo-300 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/50'
+            }`}
           >
-            {loading ? 'Wait...' : isSignup ? 'Sign Up' : 'Log In'}
+            {loading ? 'Connecting to Server...' : isSignup ? 'Sign Up' : 'Log In'}
           </button>
         </form>
 
@@ -105,11 +117,18 @@ function App() {
           {isSignup ? 'Already have an account?' : "Don't have an account?"}
           <span
             className="text-indigo-600 font-bold cursor-pointer ml-1 hover:underline"
-            onClick={() => !loading && setIsSignup(!isSignup)}
+            onClick={() => {
+              if (!loading) {
+                setIsSignup(!isSignup);
+                setUsername('');
+                setPassword('');
+              }
+            }}
           >
             {isSignup ? 'Login' : 'Sign up'}
           </span>
         </p>
+
       </div>
     </div>
   );
