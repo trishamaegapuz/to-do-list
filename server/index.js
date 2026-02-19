@@ -7,13 +7,13 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Importante para sa Render/Vercel
-app.set('trust proxy', 1); 
+// --- 1. SETTINGS & MIDDLEWARES ---
+app.set('trust proxy', 1); // Importante para sa Render/Vercel cookies
 
 app.use(express.json());
 
 app.use(cors({
-  origin: 'https://to-do-list-rho-sable-68.vercel.app', // SIGURADUHIN NA WALANG "/" SA DULO
+  origin: 'https://to-do-list-rho-sable-68.vercel.app', // Siguraduhin na walang "/" sa dulo
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -23,9 +23,9 @@ app.use(
   session({
     name: 'todo_sid',
     secret: 'taskflow-secret-key-2026', 
-    resave: true, // Gawin nating true para pilitin ang pag-save ng session
+    resave: true, 
     saveUninitialized: false,
-    proxy: true, // Dagdag ito para sa Render
+    proxy: true,
     cookie: {
       secure: true, 
       httpOnly: true,
@@ -35,12 +35,23 @@ app.use(
   })
 );
 
-// --- ROUTES (Gamitin ang dati mong routes dito, siguraduhin lang na nandoon ang /api/check-auth) ---
-app.get('/api/check-auth', (req, res) => {
+// --- 2. AUTHENTICATION MIDDLEWARE ---
+// Nilagay sa itaas para makilala ng lahat ng routes sa ibaba
+const isAuthenticated = (req, res, next) => {
   if (req.session && req.session.user) {
+    return next();
+  }
+  res.status(401).json({ error: "Unauthorized - Session Expired" });
+};
+
+// --- 3. AUTH ROUTES ---
+
+// Check if user is already logged in
+app.get('/api/check-auth', (req, res) => {
+  if (req.session.user) {
     res.json({ authenticated: true, user: req.session.user });
   } else {
-    res.status(401).json({ authenticated: false });
+    res.json({ authenticated: false });
   }
 });
 
@@ -67,6 +78,7 @@ app.post('/login', async (req, res) => {
     
     if (!match) return res.status(401).json({ success: false, message: "Wrong password" });
     
+    // Save user info to session
     req.session.user = { id: user.id, username: user.username };
     
     req.session.save((err) => {
@@ -89,13 +101,15 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// --- PROTECTED API ROUTES ---
+// --- 4. PROTECTED API ROUTES ---
 
 app.get('/api/list', isAuthenticated, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
     res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: "Database error" }); }
+  } catch (err) { 
+    res.status(500).json({ error: "Database error" }); 
+  }
 });
 
 app.post('/api/list', isAuthenticated, async (req, res) => {
@@ -103,7 +117,9 @@ app.post('/api/list', isAuthenticated, async (req, res) => {
     const { title } = req.body;
     const result = await pool.query('INSERT INTO list (title, status) VALUES ($1, $2) RETURNING *', [title, 'pending']);
     res.json(result.rows[0]);
-  } catch (err) { res.status(500).json(err); }
+  } catch (err) { 
+    res.status(500).json(err); 
+  }
 });
 
 app.put('/api/list/:id', isAuthenticated, async (req, res) => {
@@ -124,6 +140,7 @@ app.delete('/api/list/:id', isAuthenticated, async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
+// --- 5. ITEMS API ---
 app.get('/api/items/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
