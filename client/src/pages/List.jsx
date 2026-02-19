@@ -13,13 +13,15 @@ function List() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Inayos ang logic dito para mas matibay ang auth check
   const fetchLists = async () => {
     try {
       const res = await axios.get(`${API}/api/list`);
       setLists(res.data);
     } catch (err) {
-      console.error(err);
+      console.error("Auth Error in List:", err);
       if (err.response && err.response.status === 401) {
+        // Kapag unauthorized, balik sa login
         navigate('/');
       }
     } finally {
@@ -34,9 +36,10 @@ function List() {
   const handleLogout = async () => {
     try {
       await axios.post(`${API}/logout`);
-      navigate('/');
+      // Hard refresh para malinis lahat ng cookies
+      window.location.href = '/'; 
     } catch (err) {
-      navigate('/'); 
+      window.location.href = '/'; 
     }
   };
 
