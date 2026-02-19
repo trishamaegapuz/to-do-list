@@ -7,12 +7,12 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// IMPORTANTE: Kailangan ito para gumana ang Secure Cookies sa Render/Vercel
+
 app.set('trust proxy', 1); 
 
 app.use(express.json());
 
-// Pinalakas na CORS config para sa Cross-Origin Requests
+
 app.use(cors({
   origin: 'https://to-do-list-rho-sable-68.vercel.app',
   credentials: true,
@@ -23,19 +23,18 @@ app.use(cors({
 app.use(
   session({
     name: 'todo_sid',
-    secret: 'taskflow-secret-key-2026', // Maaari mong palitan ito
-    resave: true, // Ginawang true para ma-refresh ang session sa bawat request
+    secret: 'taskflow-secret-key-2026', 
+    resave: true,
     saveUninitialized: false,
     cookie: {
-      secure: true, // Required dahil naka-HTTPS ang Vercel at Render
+      secure: true, 
       httpOnly: true,
-      sameSite: 'none', // Sobrang importante para sa Mobile/Cross-site cookies
-      maxAge: 24 * 60 * 60 * 1000 // Mag-eexpire matapos ang 1 araw
+      sameSite: 'none', 
+      maxAge: 24 * 60 * 60 * 1000 
     }
   })
 );
 
-// MIDDLEWARE: Proteksyon para sa iyong mga API
 const isAuthenticated = (req, res, next) => {
   if (req.session && req.session.user) {
     return next();
@@ -68,10 +67,8 @@ app.post('/login', async (req, res) => {
     
     if (!match) return res.status(401).json({ success: false, message: "Wrong password" });
     
-    // I-save ang user info sa session
     req.session.user = { id: user.id, username: user.username };
     
-    // FORCE SAVE: Tinitiyak na naka-save ang session bago mag-reply sa frontend
     req.session.save((err) => {
       if (err) {
         console.error("Session Save Error:", err);
@@ -96,7 +93,6 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// Check Auth Status Route (Para sa Frontend App.jsx/List.jsx)
 app.get('/api/check-auth', (req, res) => {
   if (req.session.user) {
     res.json({ authenticated: true, user: req.session.user });
@@ -105,7 +101,6 @@ app.get('/api/check-auth', (req, res) => {
   }
 });
 
-// --- LIST API (With Authentication) ---
 
 app.get('/api/list', isAuthenticated, async (req, res) => {
   try {
@@ -136,14 +131,12 @@ app.put('/api/list/:id', isAuthenticated, async (req, res) => {
 app.delete('/api/list/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
-    // Manual Cascade delete
     await pool.query('DELETE FROM items WHERE list_id = $1', [id]);
     await pool.query('DELETE FROM list WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json(err); }
 });
 
-// --- ITEMS API (With Authentication) ---
 
 app.get('/api/items/:id', isAuthenticated, async (req, res) => {
   try {

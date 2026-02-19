@@ -11,7 +11,7 @@ if (process.env.NODE_ENV === "development") {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT), // ensure number
+    port: Number(process.env.DB_PORT), 
   });
 } else {
   newPool = new Pool({
