@@ -3,6 +3,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2'; 
 import { useNavigate } from 'react-router-dom';
 
+// Napakahalaga: Para ma-send ang session cookies
 axios.defaults.withCredentials = true;
 
 function App() {
@@ -11,9 +12,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
 
-  // Hardcoded para iwas error sa VITE_API_URL
   const API = 'https://to-do-list-8a22.onrender.com';
-
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -27,34 +26,36 @@ function App() {
       const res = await axios.post(url, payload);
 
       if (res.data.success) {
-        await Swal.fire({
-          icon: 'success',
-          title: isSignup ? 'Registration Success!' : 'Welcome Back!',
-          text: isSignup ? 'You can now log in.' : 'Redirecting to your workspace...',
-          timer: 2000,
-          showConfirmButton: false,
-        });
-
-        if (isSignup) {
+        if (!isSignup) {
+          // Kapag login success, lipat agad sa list
+          // Mas mainam na wag nang patagalin ang Swal timer para mabilis ang redirect
+          await Swal.fire({
+            icon: 'success',
+            title: 'Welcome Back!',
+            text: 'Redirecting...',
+            timer: 1000,
+            showConfirmButton: false,
+          });
+          navigate('/list');
+        } else {
+          await Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: 'Account created. Please log in.',
+            timer: 2000,
+            showConfirmButton: false,
+          });
           setIsSignup(false);
           setUsername('');
           setPassword('');
-        } else {
-          navigate('/list');
         }
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Authentication Failed',
-          text: 'Maling username o password.',
-        });
       }
     } catch (err) {
       console.error('ERROR:', err);
       Swal.fire({
         icon: 'error',
-        title: 'Connection Issue',
-        text: 'Hindi makakonekta sa server. Pakihintay ng 1 minuto para magising ang Render.',
+        title: 'Authentication Failed',
+        text: err.response?.data?.message || 'Maling username o password.',
       });
     } finally {
       setLoading(false);
@@ -64,7 +65,6 @@ function App() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-4">
       <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl">
-
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">
             {isSignup ? 'Create Account' : 'Welcome Back'}
@@ -109,7 +109,7 @@ function App() {
                 : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/50'
             }`}
           >
-            {loading ? 'Connecting to Server...' : isSignup ? 'Sign Up' : 'Log In'}
+            {loading ? 'Connecting...' : isSignup ? 'Sign Up' : 'Log In'}
           </button>
         </form>
 
@@ -128,7 +128,6 @@ function App() {
             {isSignup ? 'Login' : 'Sign up'}
           </span>
         </p>
-
       </div>
     </div>
   );
