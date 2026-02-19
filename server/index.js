@@ -7,14 +7,13 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// IMPORTANTE: Para sa Secure Cookies sa Render
+// IMPORTANTE: Kailangan ito para sa Secure Cookies sa Render/Vercel
 app.set('trust proxy', 1); 
 
 app.use(express.json());
 
-// Pinalakas na CORS config
+// CORS config: Siguraduhin na EXACT URL ito mula sa Vercel
 app.use(cors({
-  // Siguraduhin na EXACT URL ito mula sa Vercel (walang slash sa dulo)
   origin: 'https://to-do-list-rho-sable-68.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -25,18 +24,19 @@ app.use(
   session({
     name: 'todo_sid',
     secret: 'taskflow-secret-key-2026', 
-    resave: false, // Binago sa false para maiwasan ang race conditions sa mobile
+    resave: true, 
     saveUninitialized: false,
+    rolling: true, // Nire-refresh ang expiration tuwing ginagamit ang app
     cookie: {
       secure: true, 
       httpOnly: true,
-      sameSite: 'none', 
-      maxAge: 24 * 60 * 60 * 1000 
+      sameSite: 'none', // Sobrang importante para sa Cross-site cookies
+      maxAge: 24 * 60 * 60 * 1000 // 1 Day
     }
   })
 );
 
-// MIDDLEWARE: Check if user is logged in
+// MIDDLEWARE: Check if session exists
 const isAuthenticated = (req, res, next) => {
   if (req.session && req.session.user) {
     return next();
@@ -45,6 +45,15 @@ const isAuthenticated = (req, res, next) => {
 };
 
 // --- AUTH ROUTES ---
+
+// NEW: Endpoint para i-check kung logged in na ang user pagbukas ng app
+app.get('/api/check-auth', (req, res) => {
+  if (req.session.user) {
+    res.json({ authenticated: true, user: req.session.user });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
 
 app.post('/register', async (req, res) => {
   try {
@@ -69,10 +78,8 @@ app.post('/login', async (req, res) => {
     
     if (!match) return res.status(401).json({ success: false, message: "Wrong password" });
     
-    // I-save ang user info sa session
     req.session.user = { id: user.id, username: user.username };
     
-    // Tinitiyak na save bago mag-respond
     req.session.save((err) => {
       if (err) return res.status(500).json({ success: false });
       res.json({ success: true });
@@ -128,7 +135,6 @@ app.delete('/api/list/:id', isAuthenticated, async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-// --- ITEMS API ---
 app.get('/api/items/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
