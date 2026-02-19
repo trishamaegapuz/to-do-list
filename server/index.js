@@ -7,14 +7,13 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// IMPORTANTE: Kailangan ito para sa Secure Cookies sa Render/Vercel
+// Importante para sa Render/Vercel
 app.set('trust proxy', 1); 
 
 app.use(express.json());
 
-// CORS config: Siguraduhin na EXACT URL ito mula sa Vercel
 app.use(cors({
-  origin: 'https://to-do-list-rho-sable-68.vercel.app',
+  origin: 'https://to-do-list-rho-sable-68.vercel.app', // SIGURADUHIN NA WALANG "/" SA DULO
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -24,34 +23,24 @@ app.use(
   session({
     name: 'todo_sid',
     secret: 'taskflow-secret-key-2026', 
-    resave: true, 
+    resave: true, // Gawin nating true para pilitin ang pag-save ng session
     saveUninitialized: false,
-    rolling: true, // Nire-refresh ang expiration tuwing ginagamit ang app
+    proxy: true, // Dagdag ito para sa Render
     cookie: {
       secure: true, 
       httpOnly: true,
-      sameSite: 'none', // Sobrang importante para sa Cross-site cookies
-      maxAge: 24 * 60 * 60 * 1000 // 1 Day
+      sameSite: 'none', 
+      maxAge: 24 * 60 * 60 * 1000 
     }
   })
 );
 
-// MIDDLEWARE: Check if session exists
-const isAuthenticated = (req, res, next) => {
-  if (req.session && req.session.user) {
-    return next();
-  }
-  res.status(401).json({ error: "Unauthorized - Session Expired" });
-};
-
-// --- AUTH ROUTES ---
-
-// NEW: Endpoint para i-check kung logged in na ang user pagbukas ng app
+// --- ROUTES (Gamitin ang dati mong routes dito, siguraduhin lang na nandoon ang /api/check-auth) ---
 app.get('/api/check-auth', (req, res) => {
-  if (req.session.user) {
+  if (req.session && req.session.user) {
     res.json({ authenticated: true, user: req.session.user });
   } else {
-    res.json({ authenticated: false });
+    res.status(401).json({ authenticated: false });
   }
 });
 
