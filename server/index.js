@@ -12,27 +12,29 @@ app.use(express.json());
 
 app.use(cors({
   origin: 'https://to-do-list-rho-sable-68.vercel.app',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(
   session({
     name: 'todo_sid',
-    secret: 'secret-key', // Sa production, gamitin ang environment variable
-    resave: false,
+    secret: 'secret-key-2026', 
+    resave: true, // Gawing true para sa Render stability
     saveUninitialized: false,
     cookie: {
       secure: true, 
       httpOnly: true,
       sameSite: 'none',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day expiration
+      maxAge: 24 * 60 * 60 * 1000 
     }
   })
 );
 
-// HELPER: Middleware para i-check kung naka-login ang user
+// MIDDLEWARE
 const isAuthenticated = (req, res, next) => {
-  if (req.session.user) return next();
+  if (req.session && req.session.user) return next();
   res.status(401).json({ error: "Unauthorized" });
 };
 
@@ -50,24 +52,29 @@ app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const result = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
-    if (result.rows.length === 0) return res.status(401).json({ success: false });
+    if (result.rows.length === 0) return res.status(401).json({ success: false, message: "User not found" });
+    
     const user = result.rows[0];
     const match = await comparePassword(password, user.password);
-    if (!match) return res.status(401).json({ success: false });
+    if (!match) return res.status(401).json({ success: false, message: "Wrong password" });
     
+    // IMPORTANTE: I-save ang session bago mag-response
     req.session.user = { id: user.id, username: user.username };
-    res.json({ success: true });
+    req.session.save((err) => {
+      if (err) return res.status(500).json({ success: false });
+      res.json({ success: true });
+    });
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// Logout route para makabalik sa login page nang malinis ang session
 app.post('/logout', (req, res) => {
-  req.session.destroy();
-  res.clearCookie('todo_sid');
-  res.json({ success: true });
+  req.session.destroy((err) => {
+    res.clearCookie('todo_sid', { secure: true, sameSite: 'none' });
+    res.json({ success: true });
+  });
 });
 
-// --- LIST API (Inilagay natin ang isAuthenticated para safe) ---
+// --- PROTECTED ROUTES ---
 app.get('/api/list', isAuthenticated, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
@@ -95,7 +102,6 @@ app.put('/api/list/:id', isAuthenticated, async (req, res) => {
 app.delete('/api/list/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
-    // Transactional Delete (Mas safe kung sabay)
     await pool.query('DELETE FROM items WHERE list_id = $1', [id]);
     await pool.query('DELETE FROM list WHERE id = $1', [id]);
     res.json({ success: true });
@@ -119,19 +125,12 @@ app.post('/api/items', isAuthenticated, async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-// FIXED: Mas matalinong UPDATE logic
 app.put('/api/items/:id', isAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, description } = req.body;
-
-    if (status !== undefined) {
-      await pool.query('UPDATE items SET status = $1 WHERE id = $2', [status, id]);
-    }
-    if (description !== undefined) {
-      await pool.query('UPDATE items SET description = $1 WHERE id = $2', [description, id]);
-    }
-    
+    if (status !== undefined) await pool.query('UPDATE items SET status = $1 WHERE id = $2', [status, id]);
+    if (description !== undefined) await pool.query('UPDATE items SET description = $1 WHERE id = $2', [description, id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json(err); }
 });
