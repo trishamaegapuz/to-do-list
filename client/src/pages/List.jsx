@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -13,20 +13,39 @@ function List() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const fetchLists = async () => {
+  // Ginawa nating useCallback para pwedeng tawagin kahit saan nang walang infinite loop
+  const fetchLists = useCallback(async () => {
     try {
+      // Sinisigurado na withCredentials ay laging true para sa cookies
       const res = await axios.get(`${API}/api/list`);
-      setLists(res.data);
-    } catch (err) { 
-      console.error(err); 
-    } finally { 
-      setLoading(false); 
+      
+      // I-check kung array ang bumalik bago i-set
+      if (Array.isArray(res.data)) {
+        setLists(res.data);
+      }
+    } catch (err) {
+      console.error("Fetch Error:", err);
+      // Kapag 401, ibig sabihin expired na ang session o blocked ang cookie
+      if (err.response?.status === 401) {
+        navigate('/');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    fetchLists();
+  }, [fetchLists]);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API}/logout`);
+      window.location.href = '/'; // Hard redirect para malinis ang session state
+    } catch (err) {
+      navigate('/');
     }
   };
-
-  useEffect(() => { 
-    fetchLists(); 
-  }, []);
 
   const handleAdd = async () => {
     const { value: title } = await Swal.fire({
@@ -39,9 +58,21 @@ function List() {
       color: '#fff',
       customClass: { popup: 'rounded-[2rem] border border-slate-700' }
     });
+
     if (title) {
-      await axios.post(`${API}/api/list`, { title });
-      fetchLists();
+      try {
+        setLoading(true);
+        const res = await axios.post(`${API}/api/list`, { title });
+        if (res.data) {
+          await fetchLists(); // Hintayin matapos ang fetch bago i-stop ang loading
+          Swal.fire({ icon: 'success', title: 'Saved!', timer: 1000, showConfirmButton: false, background: '#1e293b', color: '#fff' });
+        }
+      } catch (err) {
+        console.error("Add Error:", err);
+        if (err.response?.status === 401) navigate('/');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -57,9 +88,14 @@ function List() {
       color: '#fff',
       customClass: { popup: 'rounded-[2rem] border border-slate-700' }
     });
+
     if (newTitle && newTitle !== oldTitle) {
-      await axios.put(`${API}/api/list/${id}`, { title: newTitle });
-      fetchLists();
+      try {
+        await axios.put(`${API}/api/list/${id}`, { title: newTitle });
+        fetchLists();
+      } catch (err) {
+        if (err.response?.status === 401) navigate('/');
+      }
     }
   };
 
@@ -76,24 +112,26 @@ function List() {
       color: '#fff',
       customClass: { popup: 'rounded-[2rem] border border-slate-700' }
     });
+
     if (result.isConfirmed) {
-      await axios.delete(`${API}/api/list/${id}`);
-      fetchLists();
+      try {
+        await axios.delete(`${API}/api/list/${id}`);
+        fetchLists();
+      } catch (err) {
+        if (err.response?.status === 401) navigate('/');
+      }
     }
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-indigo-500/30">
-      {/* Header component has logo on the right based on our update */}
       <Header />
       
       <main className="flex-grow p-6 pb-32">
         <header className="max-w-2xl mx-auto mb-12 mt-4">
-          
-          {/* Logout Button positioned to the Left */}
           <div className="flex justify-start mb-10">
             <button 
-              onClick={() => navigate('/')} 
+              onClick={handleLogout} 
               className="px-4 py-2 bg-slate-800/40 hover:bg-red-500/10 hover:text-red-400 border border-slate-700 rounded-xl text-slate-500 text-[10px] font-bold uppercase tracking-widest transition-all"
             >
               ← Logout Session
@@ -155,7 +193,6 @@ function List() {
         </div>
       </main>
 
-      {/* Floating Action Button (FAB) */}
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-xs px-6 z-40">
         <button 
           onClick={handleAdd} 
