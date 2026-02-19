@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import Header from '../components/Header';
@@ -19,155 +19,110 @@ function Details() {
     try {
       const res = await axios.get(`${API}/api/items/${id}`);
       setItems(res.data);
-    } catch (err) {
-      if (err.response?.status === 401) navigate('/');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); } 
+    finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchItems();
-  }, [id]);
+  useEffect(() => { fetchItems(); }, [id]);
 
-  const handleAddItem = async () => {
+  const handleAdd = async () => {
     const { value: desc } = await Swal.fire({
-      title: 'Add Task',
+      title: 'New Task',
       input: 'text',
-      inputPlaceholder: 'What needs to be done?',
+      inputPlaceholder: 'Type task details...',
       showCancelButton: true,
       confirmButtonColor: '#6366f1',
-      cancelButtonColor: '#475569',
       background: '#1e293b',
       color: '#fff',
-      customClass: {
-        popup: 'rounded-[2rem] border border-slate-700'
-      }
+      customClass: { popup: 'rounded-[2rem] border border-slate-700' }
     });
     if (desc) {
-      try {
-        await axios.post(`${API}/api/items`, { list_id: id, description: desc, status: 'pending' });
-        fetchItems();
-      } catch (err) {
-        if (err.response?.status === 401) navigate('/');
-      }
-    }
-  };
-
-  const handleEditItem = async (itemId, oldDesc) => {
-    const { value: newDesc } = await Swal.fire({
-      title: 'Edit Task',
-      input: 'text',
-      inputValue: oldDesc,
-      showCancelButton: true,
-      confirmButtonColor: '#6366f1',
-      cancelButtonColor: '#475569',
-      background: '#1e293b',
-      color: '#fff',
-      customClass: {
-        popup: 'rounded-[2rem] border border-slate-700'
-      }
-    });
-    if (newDesc && newDesc !== oldDesc) {
-      try {
-        await axios.put(`${API}/api/items/${itemId}`, { description: newDesc });
-        fetchItems();
-      } catch (err) {
-        if (err.response?.status === 401) navigate('/');
-      }
+      await axios.post(`${API}/api/items`, { list_id: id, description: desc, status: 'pending' });
+      fetchItems();
     }
   };
 
   const toggleStatus = async (itemId, currentStatus) => {
-    try {
-      const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
-      await axios.put(`${API}/api/items/${itemId}`, { status: newStatus });
+    const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
+    await axios.put(`${API}/api/items/${itemId}`, { status: newStatus });
+    fetchItems();
+  };
+
+  const handleEdit = async (itemId, currentDesc) => {
+    const { value: newDesc } = await Swal.fire({
+      title: 'Update Task',
+      input: 'text',
+      inputValue: currentDesc,
+      showCancelButton: true,
+      confirmButtonColor: '#6366f1',
+      background: '#1e293b',
+      color: '#fff',
+      customClass: { popup: 'rounded-[2rem] border border-slate-700' }
+    });
+    if (newDesc && newDesc !== currentDesc) {
+      await axios.put(`${API}/api/items/${itemId}`, { description: newDesc });
       fetchItems();
-    } catch (err) {
-      if (err.response?.status === 401) navigate('/');
     }
   };
 
-  // --- UPDATED DELETE WITH CONFIRMATION PROMPT ---
-  const deleteItem = async (itemId) => {
+  const handleDelete = async (itemId) => {
     const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
+      title: 'Delete Task?',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#ef4444', // Red for delete
-      cancelButtonColor: '#475569', // Slate for cancel
-      confirmButtonText: 'Yes, delete it!',
+      confirmButtonColor: '#ef4444',
       background: '#1e293b',
       color: '#fff',
-      customClass: {
-        popup: 'rounded-[2rem] border border-slate-700'
-      }
+      customClass: { popup: 'rounded-[2rem] border border-slate-700' }
     });
-
     if (result.isConfirmed) {
-      try {
-        await axios.delete(`${API}/api/items/${itemId}`);
-        fetchItems();
-        // Optional: Magpakita ng success message
-        Swal.fire({
-          title: 'Deleted!',
-          text: 'Your task has been removed.',
-          icon: 'success',
-          timer: 1500,
-          showConfirmButton: false,
-          background: '#1e293b',
-          color: '#fff',
-          customClass: { popup: 'rounded-[2rem] border border-slate-700' }
-        });
-      } catch (err) {
-        if (err.response?.status === 401) navigate('/');
-      }
+      await axios.delete(`${API}/api/items/${itemId}`);
+      fetchItems();
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200">
+    <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200 font-sans">
       <Header />
-      <main className="flex-grow p-6 pb-32">
+      
+      <main className="flex-grow p-6 pb-24">
         <div className="max-w-2xl mx-auto">
-          <button onClick={() => navigate('/list')} className="mb-8 text-slate-500 text-[10px] font-bold uppercase tracking-widest hover:text-indigo-400 transition-colors">
-            ← Back to Lists
+          <button onClick={() => navigate('/list')} className="group mb-12 flex items-center gap-2 text-slate-500 hover:text-indigo-400 font-bold transition-all text-xs uppercase tracking-widest">
+            ← Workspace
           </button>
 
-          <div className="mb-10">
-            <h2 className="text-4xl font-black text-white tracking-tighter">{state?.title || 'Tasks'}</h2>
-            <p className="text-slate-500 text-sm italic">Manage your specific objectives</p>
-          </div>
+          <header className="mb-12 flex flex-col md:flex-row justify-between items-end gap-6 border-b border-slate-800 pb-8">
+            <div className="space-y-1">
+              <h1 className="text-5xl font-black text-white tracking-tighter">{state?.title || 'Active Plan'}</h1>
+              <p className="text-indigo-400/80 font-bold text-sm uppercase">{items.filter(i => i.status !== 'completed').length} Tasks Pending</p>
+            </div>
+            <button onClick={handleAdd} className="bg-slate-800 border border-slate-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-600 transition-all text-xs uppercase tracking-tighter shadow-lg shadow-black/20">
+              Add Objective
+            </button>
+          </header>
 
           <div className="space-y-3">
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-2">
-                <div className="w-6 h-6 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
-                <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Loading Tasks</p>
-              </div>
+              <div className="text-center py-20 text-slate-600 italic">Accessing data...</div>
             ) : items.length === 0 ? (
-              <div className="text-center py-10 bg-slate-800/10 rounded-3xl border border-slate-800 text-slate-600 italic">No tasks yet.</div>
+              <div className="text-center py-20 bg-slate-800/10 rounded-[2rem] border border-slate-800">
+                <p className="text-slate-500 italic">No objectives assigned yet.</p>
+              </div>
             ) : (
               items.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 bg-slate-800/30 p-5 rounded-2xl border border-slate-800 group hover:border-slate-600 transition-all">
-                  <input 
-                    type="checkbox" 
-                    checked={item.status === 'completed'} 
-                    onChange={() => toggleStatus(item.id, item.status)}
-                    className="w-5 h-5 rounded-lg border-slate-700 bg-slate-900 checked:bg-indigo-600 transition-all cursor-pointer accent-indigo-500"
-                  />
-                  <span className={`flex-grow font-medium transition-all ${item.status === 'completed' ? 'line-through text-slate-600' : 'text-slate-200'}`}>
-                    {item.description}
-                  </span>
-                  
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onClick={() => handleEditItem(item.id, item.description)} className="p-2 hover:bg-indigo-500/10 rounded-lg text-slate-400 hover:text-indigo-400 transition-all">
-                      ✏️
-                    </button>
-                    <button onClick={() => deleteItem(item.id)} className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 transition-all">
-                      🗑️
-                    </button>
+                <div key={item.id} className={`p-5 rounded-2xl border flex items-center justify-between group transition-all duration-300 ${item.status === 'completed' ? 'bg-slate-900/50 border-transparent opacity-40' : 'bg-slate-800/40 border-slate-700/50 hover:border-indigo-500/30'}`}>
+                  <div className="flex items-center gap-4 flex-1">
+                    <input 
+                      type="checkbox" 
+                      checked={item.status === 'completed'} 
+                      onChange={() => toggleStatus(item.id, item.status)} 
+                      className="w-5 h-5 rounded-md border-slate-600 bg-transparent text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
+                    />
+                    <span className={`text-lg font-medium transition-all ${item.status === 'completed' ? 'line-through text-slate-500' : 'text-slate-200'}`}>{item.description}</span>
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleEdit(item.id, item.description)} className="p-2 text-slate-500 hover:text-white transition-colors">✏️</button>
+                    <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-500 hover:text-red-400 transition-colors">🗑️</button>
                   </div>
                 </div>
               ))
@@ -176,11 +131,6 @@ function Details() {
         </div>
       </main>
 
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-xs px-6">
-        <button onClick={handleAddItem} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl hover:bg-indigo-500 transition-all uppercase text-xs tracking-widest active:scale-95">
-          + Add New Task
-        </button>
-      </div>
       <Footer />
     </div>
   );
