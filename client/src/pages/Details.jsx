@@ -118,7 +118,7 @@ function Details() {
               <p className="text-indigo-400/80 font-bold text-sm uppercase">{items.filter(i => i.status !== 'completed').length} Tasks Pending</p>
             </div>
             <button onClick={handleAdd} className="bg-slate-800 border border-slate-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-600 transition-all text-xs uppercase tracking-tighter shadow-lg shadow-black/20">
-              Add Objective
+              Add Task
             </button>
           </header>
 
