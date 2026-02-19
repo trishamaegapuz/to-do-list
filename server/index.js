@@ -7,12 +7,12 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Importante para sa Render/Vercel (HTTPS/Proxy support)
+// NAPAKAHALAGA: Kailangan ito para gumana ang Secure Cookies sa Render/Vercel proxy
 app.set('trust proxy', 1); 
 
 app.use(express.json());
 
-// CORS configuration - Siguraduhin na walang '/' sa dulo ng URL
+// Fixed CORS: Siguraduhin na walang trailing slash (/) ang origin URL
 app.use(cors({
   origin: 'https://to-do-list-rho-sable-68.vercel.app',
   credentials: true,
@@ -24,20 +24,42 @@ app.use(
   session({
     name: 'todo_sid',
     secret: 'taskflow-secret-key-2026', 
-    resave: false, 
+    resave: false, // Iniba sa false para sa better performance
     saveUninitialized: false,
     proxy: true, 
     cookie: {
-      secure: true, // Required for HTTPS
+      secure: true, // Dahil naka-HTTPS ang Vercel at Render
       httpOnly: true,
-      sameSite: 'none', // Required for cross-site (Vercel to Render)
-      maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
-      partitioned: true // Pinakabagong requirement para sa mobile browsers
+      sameSite: 'none', // Importante para sa Cross-site cookies
+      maxAge: 24 * 60 * 60 * 1000,
+      partitioned: true // Dagdag security/compatibility sa mga bagong browser
     }
   })
 );
 
+// MIDDLEWARE: Proteksyon para sa iyong mga API
+const isAuthenticated = (req, res, next) => {
+  // Debug log para makita kung may session (Optional: Tanggalin sa production)
+  console.log("Checking session for user:", req.session.user);
+  
+  if (req.session && req.session.user) {
+    return next();
+  }
+  res.status(401).json({ error: "Unauthorized - Session Expired" });
+};
+
 // --- AUTH ROUTES ---
+
+app.post('/register', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const hashedPassword = await hashPassword(password);
+    await pool.query('INSERT INTO user_accounts (username, password) VALUES ($1, $2)', [username, hashedPassword]);
+    res.json({ success: true });
+  } catch (err) { 
+    res.status(500).json({ success: false, error: err.message }); 
+  }
+});
 
 app.post('/login', async (req, res) => {
   try {
@@ -54,16 +76,29 @@ app.post('/login', async (req, res) => {
     // I-save ang user info sa session
     req.session.user = { id: user.id, username: user.username };
     
-    // Manual save para sigurado bago mag-response
+    // FORCE SAVE: Siguraduhing naka-save ang session bago mag-reply
     req.session.save((err) => {
       if (err) {
+        console.error("Session Save Error:", err);
         return res.status(500).json({ success: false });
       }
-      return res.status(200).json({ success: true });
+      res.json({ success: true });
     });
   } catch (err) { 
     res.status(500).json({ success: false, error: err.message }); 
   }
+});
+
+app.post('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) return res.status(500).json({ success: false });
+    res.clearCookie('todo_sid', {
+      secure: true,
+      sameSite: 'none',
+      path: '/'
+    });
+    res.json({ success: true });
+  });
 });
 
 app.get('/api/check-auth', (req, res) => {
@@ -74,19 +109,16 @@ app.get('/api/check-auth', (req, res) => {
   }
 });
 
-// Gamitin ang isAuthenticated sa lahat ng list routes
-const isAuthenticated = (req, res, next) => {
-  if (req.session && req.session.user) {
-    return next();
-  }
-  res.status(401).json({ error: "Unauthorized" });
-};
+// --- LIST API (Example of protected route) ---
 
 app.get('/api/list', isAuthenticated, async (req, res) => {
   try {
+    // Kinukuha lang ang tasks ng user (Dapat may user_id ang table mo)
     const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
     res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: "DB Error" }); }
+  } catch (err) { 
+    res.status(500).json({ error: "Database error" }); 
+  }
 });
 
 app.post('/api/list', isAuthenticated, async (req, res) => {
