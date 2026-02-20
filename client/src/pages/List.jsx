@@ -69,7 +69,7 @@ function List() {
   };
 
   const handleEdit = async (e, id, oldTitle) => {
-    e.stopPropagation(); // Iwas trigger sa navigate
+    e.stopPropagation(); 
     const { value: newTitle } = await Swal.fire({
       title: 'Edit Title',
       input: 'text',
@@ -92,7 +92,7 @@ function List() {
   };
 
   const handleDelete = async (e, id) => {
-    e.stopPropagation(); // Iwas trigger sa navigate
+    e.stopPropagation(); 
     const result = await Swal.fire({
       title: 'Are you sure?',
       text: "This will delete all tasks inside!",
