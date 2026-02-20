@@ -7,14 +7,13 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Importante para sa Render (HTTPS/Proxy)
-app.set('trust proxy', 1); 
+
 app.use(express.json());
 
 app.use(cors({
   origin: 'https://to-do-list-rho-sable-68.vercel.app',
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Pinayagan na ang edit at delete
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -24,11 +23,11 @@ app.use(
     secret: 'secure-session-key-2026', 
     resave: true, 
     saveUninitialized: false,
-    proxy: true, // Kailangan para gumana ang secure cookie sa Render
+    proxy: true, 
     cookie: {
       secure: true, 
       httpOnly: true,
-      sameSite: 'none', // Kailangan para sa Cross-site (Vercel to Render)
+      sameSite: 'none', 
       maxAge: 24 * 60 * 60 * 1000 
     }
   })
@@ -93,7 +92,6 @@ app.delete('/api/list/:id', isAuthenticated, async (req, res) => {
   res.json({ success: true });
 });
 
-// --- ITEMS API ---
 app.get('/api/items/:id', isAuthenticated, async (req, res) => {
   const result = await pool.query('SELECT * FROM items WHERE list_id = $1 ORDER BY id ASC', [req.params.id]);
   res.json(result.rows);
