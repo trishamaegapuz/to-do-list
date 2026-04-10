@@ -3,6 +3,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
 
+// Siguraduhin na ito ay nasa labas ng component
 axios.defaults.withCredentials = true;
 
 function App() {
@@ -10,20 +11,30 @@ function App() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
+
   const API = 'https://to-do-list-8a22.onrender.com';
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       const url = isSignup ? `${API}/register` : `${API}/login`;
       const res = await axios.post(url, { username, password });
 
       if (res.data.success) {
         if (!isSignup) {
-          navigate('/list');
+          // LOGIN SUCCESS
+          // Maaari kang mag-save ng konting info sa localStorage para sa UI bilis
+          localStorage.setItem('isLoggedIn', 'true');
+
+          // Maghintay ng sandali bago mag-navigate para sigurado ang cookie
+          setTimeout(() => {
+            navigate('/list');
+          }, 100);
         } else {
+          // REGISTER SUCCESS
           await Swal.fire({
             icon: 'success',
             title: 'Account Created',
@@ -36,10 +47,11 @@ function App() {
         }
       }
     } catch (err) {
+      console.error("Auth Error:", err);
       Swal.fire({
         icon: 'error',
         title: 'Authentication Failed',
-        text: err.response?.data?.message || 'Invalid credentials or server error.',
+        text: err.response?.data?.message || 'Check your connection or credentials.',
         confirmButtonColor: '#4f46e5'
       });
     } finally {
@@ -49,6 +61,7 @@ function App() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#4f46e5] via-[#a855f7] to-[#ec4899] p-4">
+      {/* Ginamit ang iyong White Card UI mula sa screenshot */}
       <div className="bg-white w-full max-w-[440px] p-10 rounded-2xl shadow-2xl text-center">
         <h1 className="text-3xl font-bold text-slate-800 mb-1">
           {isSignup ? 'Create Account' : 'Welcome Back'}
@@ -82,6 +95,7 @@ function App() {
           </div>
 
           <button
+            type="submit"
             className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 disabled:opacity-50"
             disabled={loading}
           >
