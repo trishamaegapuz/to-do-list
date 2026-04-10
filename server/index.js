@@ -7,10 +7,9 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.set('trust proxy', 1); // CRITICAL para sa Render + HTTPS
+app.set('trust proxy', 1);
 
 app.use(express.json());
-
 app.use(cors({
   origin: 'https://to-do-list-rho-sable-68.vercel.app',
   credentials: true,
@@ -18,96 +17,104 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(
-  session({
-    name: 'todo_sid',
-    secret: 'secure-session-key-2026',
-    resave: false,
-    saveUninitialized: false,
-    proxy: true,
-    cookie: {
-      secure: true, // true dahil HTTPS ang Render at Vercel
-      httpOnly: true,
-      sameSite: 'none', // Kailangan 'none' para gumana ang cookies across different domains
-      maxAge: 24 * 60 * 60 * 1000
-    }
-  })
-);
+app.use(session({
+  name: 'todo_sid',
+  secret: 'secure-session-key-2026',
+  resave: false,
+  saveUninitialized: false,
+  proxy: true,
+  cookie: {
+    secure: true,
+    httpOnly: true,
+    sameSite: 'none',
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
 
 const isAuthenticated = (req, res, next) => {
-  if (req.session && req.session.user) {
-    return next();
-  }
+  if (req.session && req.session.user) return next();
   res.status(401).json({ error: "Unauthorized" });
 };
 
-// --- AUTH ROUTES ---
-
+// --- AUTH ---
 app.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
-    const userExists = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
-    if (userExists.rows.length > 0) {
-      return res.status(400).json({ success: false, message: "Username already taken" });
-    }
     const hashedPassword = await hashPassword(password);
     await pool.query('INSERT INTO user_accounts (username, password) VALUES ($1, $2)', [username, hashedPassword]);
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
+  } catch (err) { res.status(500).json({ success: false }); }
 });
 
 app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const result = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
-
-    if (result.rows.length === 0) return res.status(401).json({ success: false, message: "User not found" });
-
+    if (result.rows.length === 0) return res.status(401).json({ success: false });
     const user = result.rows[0];
     const match = await comparePassword(password, user.password);
-
-    if (!match) return res.status(401).json({ success: false, message: "Wrong password" });
-
-    // I-set ang session
+    if (!match) return res.status(401).json({ success: false });
     req.session.user = { id: user.id, username: user.username };
-
-    // IMPORTANTE: Siguraduhing na-save ang session bago mag-respond
-    req.session.save((err) => {
-      if (err) return res.status(500).json({ success: false });
-      return res.status(200).json({ success: true, user: { username: user.username } });
-    });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
+    req.session.save(() => res.json({ success: true }));
+  } catch (err) { res.status(500).json({ success: false }); }
 });
 
 app.post('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    res.clearCookie('todo_sid', {
-      secure: true,
-      sameSite: 'none',
-      httpOnly: true
-    });
+  req.session.destroy(() => {
+    res.clearCookie('todo_sid', { secure: true, sameSite: 'none' });
     res.json({ success: true });
   });
 });
 
-// --- LIST API ---
+// --- WORKSPACE (LIST) API ---
 app.get('/api/list', isAuthenticated, async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
-    res.json(result.rows);
-  } catch (err) { res.status(500).json(err); }
+  const result = await pool.query('SELECT * FROM list ORDER BY id DESC');
+  res.json(result.rows);
 });
 
 app.post('/api/list', isAuthenticated, async (req, res) => {
   const { title } = req.body;
-  const result = await pool.query('INSERT INTO list (title, status) VALUES ($1, $2) RETURNING *', [title, 'pending']);
+  const result = await pool.query('INSERT INTO list (title) VALUES ($1) RETURNING *', [title]);
   res.json(result.rows[0]);
 });
 
-// (Keep your other API routes: PUT, DELETE, etc. same as before)
+app.put('/api/list/:id', isAuthenticated, async (req, res) => {
+  const { id } = req.params;
+  const { title } = req.body;
+  await pool.query('UPDATE list SET title = $1 WHERE id = $2', [title, id]);
+  res.json({ success: true });
+});
 
-app.listen(PORT, () => console.log(`SERVER RUNNING ON PORT ${PORT}`));
+app.delete('/api/list/:id', isAuthenticated, async (req, res) => {
+  const { id } = req.params;
+  await pool.query('DELETE FROM items WHERE list_id = $1', [id]);
+  await pool.query('DELETE FROM list WHERE id = $1', [id]);
+  res.json({ success: true });
+});
+
+// --- TASKS (ITEMS) API ---
+app.get('/api/items/:id', isAuthenticated, async (req, res) => {
+  const result = await pool.query('SELECT * FROM items WHERE list_id = $1 ORDER BY id ASC', [req.params.id]);
+  res.json(result.rows);
+});
+
+app.post('/api/items', isAuthenticated, async (req, res) => {
+  const { list_id, description } = req.body;
+  await pool.query('INSERT INTO items (list_id, description, status) VALUES ($1, $2, $3)', [list_id, description, 'pending']);
+  res.json({ success: true });
+});
+
+app.put('/api/items/:id', isAuthenticated, async (req, res) => {
+  const { id } = req.params;
+  const { status, description } = req.body;
+  if (status !== undefined) await pool.query('UPDATE items SET status = $1 WHERE id = $2', [status, id]);
+  if (description !== undefined) await pool.query('UPDATE items SET description = $1 WHERE id = $2', [description, id]);
+  res.json({ success: true });
+});
+
+app.delete('/api/items/:id', isAuthenticated, async (req, res) => {
+  await pool.query('DELETE FROM items WHERE id = $1', [req.params.id]);
+  res.json({ success: true });
+});
+
+app.listen(PORT, () => console.log(`Server on ${PORT}`));

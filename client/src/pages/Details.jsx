@@ -19,15 +19,14 @@ function Details() {
     try {
       const res = await axios.get(`${API}/api/items/${id}`);
       setItems(res.data);
-    } catch (err) { 
-      console.error(err); 
+    } catch (err) {
+      console.error(err);
       if (err.response?.status === 401) navigate('/');
-    } 
-    finally { setLoading(false); }
+    } finally { setLoading(false); }
   };
 
-  useEffect(() => { 
-    fetchItems(); 
+  useEffect(() => {
+    fetchItems();
   }, [id]);
 
   const handleAdd = async () => {
@@ -43,7 +42,7 @@ function Details() {
     });
     if (desc) {
       try {
-        await axios.post(`${API}/api/items`, { list_id: id, description: desc, status: 'pending' });
+        await axios.post(`${API}/api/items`, { list_id: id, description: desc });
         fetchItems();
       } catch (err) {
         if (err.response?.status === 401) navigate('/');
@@ -105,7 +104,6 @@ function Details() {
   return (
     <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200 font-sans">
       <Header />
-      
       <main className="flex-grow p-6 pb-24">
         <div className="max-w-2xl mx-auto">
           <button onClick={() => navigate('/list')} className="group mb-12 flex items-center gap-2 text-slate-500 hover:text-indigo-400 font-bold transition-all text-xs uppercase tracking-widest">
@@ -133,10 +131,10 @@ function Details() {
               items.map((item) => (
                 <div key={item.id} className={`p-5 rounded-2xl border flex items-center justify-between group transition-all duration-300 ${item.status === 'completed' ? 'bg-slate-900/50 border-transparent opacity-40' : 'bg-slate-800/40 border-slate-700/50 hover:border-indigo-500/30'}`}>
                   <div className="flex items-center gap-4 flex-1">
-                    <input 
-                      type="checkbox" 
-                      checked={item.status === 'completed'} 
-                      onChange={() => toggleStatus(item.id, item.status)} 
+                    <input
+                      type="checkbox"
+                      checked={item.status === 'completed'}
+                      onChange={() => toggleStatus(item.id, item.status)}
                       className="w-5 h-5 rounded-md border-slate-600 bg-transparent text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
                     />
                     <span className={`text-lg font-medium transition-all ${item.status === 'completed' ? 'line-through text-slate-500' : 'text-slate-200'}`}>{item.description}</span>
@@ -151,7 +149,6 @@ function Details() {
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );

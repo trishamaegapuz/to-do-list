@@ -67,7 +67,7 @@ function App() {
           {isSignup ? 'Create Account' : 'Welcome Back'}
         </h1>
         <p className="text-slate-500 text-xs mb-8 uppercase tracking-widest font-semibold">
-          Faculty Consultation System
+          To Do List System
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5 text-left">
