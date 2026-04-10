@@ -7,7 +7,6 @@ import { hashPassword, comparePassword } from './components/hash.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
 app.use(express.json());
 
 app.use(cors({
@@ -17,18 +16,20 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.set('trust proxy', 1); // Mahalaga para sa Render deployment
+
 app.use(
   session({
     name: 'todo_sid',
-    secret: 'secure-session-key-2026', 
-    resave: true, 
+    secret: 'secure-session-key-2026',
+    resave: false,
     saveUninitialized: false,
-    proxy: true, 
+    proxy: true,
     cookie: {
-      secure: true, 
+      secure: true,
       httpOnly: true,
-      sameSite: 'none', 
-      maxAge: 24 * 60 * 60 * 1000 
+      sameSite: 'none',
+      maxAge: 24 * 60 * 60 * 1000
     }
   })
 );
@@ -38,17 +39,38 @@ const isAuthenticated = (req, res, next) => {
   res.status(401).json({ error: "Unauthorized" });
 };
 
-// --- AUTH ---
+// --- AUTH ROUTES ---
+
+// REGISTER ROUTE (Eto yung kulang mo kaya nag-404)
+app.post('/register', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    // Check kung exists na ang user
+    const userExists = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
+    if (userExists.rows.length > 0) {
+      return res.status(400).json({ success: false, message: "Username already taken" });
+    }
+
+    const hashedPassword = await hashPassword(password);
+    await pool.query('INSERT INTO user_accounts (username, password) VALUES ($1, $2)', [username, hashedPassword]);
+
+    res.json({ success: true, message: "Registration successful" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
 app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const result = await pool.query('SELECT * FROM user_accounts WHERE username = $1', [username]);
     if (result.rows.length === 0) return res.status(401).json({ success: false });
-    
+
     const user = result.rows[0];
     const match = await comparePassword(password, user.password);
     if (!match) return res.status(401).json({ success: false });
-    
+
     req.session.user = { id: user.id, username: user.username };
     req.session.save((err) => {
       if (err) return res.status(500).json({ success: false });
@@ -64,7 +86,7 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// --- LIST API ---
+// --- LIST API (No changes needed here) ---
 app.get('/api/list', isAuthenticated, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM list ORDER BY id ASC');
